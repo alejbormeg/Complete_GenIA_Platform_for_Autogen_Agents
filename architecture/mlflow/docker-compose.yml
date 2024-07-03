@@ -40,9 +40,13 @@ services:
     
     postgres:
         container_name: postgres_container
-        image: postgres:16.1
+        build:
+            context: ./pgvector
+            dockerfile: Dockerfile.pgvector
         expose:
             - ${POSTGRES_PORT:-5432}
+        ports:
+            - "5432:5432"
         networks:
             - backend
         environment:
