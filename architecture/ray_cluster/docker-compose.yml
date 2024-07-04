@@ -1,0 +1,34 @@
+version: '3.7'
+
+services:
+  ray-head:
+    build: ./ray
+    container_name: ray-head
+    ports:
+      - "8265:8265"
+      - "3000:3000"
+    command: ["head"]
+    shm_size: '8g'
+    environment:
+      - RAY_HEAD_IP=ray-head
+      - RAY_DISABLE_DOCKER_CPU_WARNING=1
+    volumes:
+      - ray_data:/root/ray
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '8g'
+        reservations:
+          cpus: '1.0'
+          memory: '4g'
+
+volumes:
+  ray_data:
+    driver: local
