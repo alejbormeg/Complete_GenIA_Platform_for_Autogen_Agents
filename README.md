@@ -56,13 +56,13 @@ In the `architecture/mlflow` directory, you will find a `docker-compose.yml` fil
     - **Networks**: Connects to frontend, storage, and backend networks.
     - **Dependencies**: Waits for web and minio services to be ready.
 
-## Networks
+### Networks
 
 * **frontend**: Bridge network for frontend services.
 * **backend**: Bridge network for backend services.
 * **storage**: Bridge network for storage services.
 
-## Volumes
+### Volumes
 
 * **db_datapg**: Volume for PostgreSQL data.
 * **minio**: Volume for Minio data (although not explicitly used in the Minio service).
@@ -179,3 +179,27 @@ Specifies `entrypoint.sh` as the entrypoint script to run when the container sta
 #### Summary
 
 This setup creates a Ray cluster head node within a Docker container, integrated with Prometheus and Grafana for monitoring. The `entrypoint.sh` script ensures that Prometheus and Grafana are installed, and starts them along with the Ray head or worker nodes, depending on the command-line arguments. The Dockerfile prepares the environment by installing necessary packages and setting up the entrypoint script. This architecture provides a scalable and monitored environment for running distributed computing tasks with Ray.
+
+
+Here is the ordered and completed bibliography with relevant links:
+
+## Bibliography
+
+1. **Attention Is All You Need**
+   - [Attention Is All You Need](https://arxiv.org/pdf/1706.03762)
+
+2. **Ray Serve**
+   - [Ray Serve: Scalable and Programmable Serving for Machine Learning Models](https://docs.ray.io/en/latest/serve/index.html)
+
+3. **MLflow**
+   - [MLflow: An Open-Source Platform for the Machine Learning Lifecycle](https://mlflow.org/)
+
+4. **Autogen**
+   - [An Open-Source Programming Framework for Agentic AI](https://microsoft.github.io/autogen/)
+   - [Autogen paper](https://arxiv.org/pdf/2308.08155)
+
+6. **Transformers**
+   - [Transformers: State-of-the-Art Natural Language Processing](https://huggingface.co/transformers/)
+
+7. **MLOps**
+   - [MLOps: Continuous Delivery and Automation Pipelines in Machine Learning](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning?hl=es-419)
