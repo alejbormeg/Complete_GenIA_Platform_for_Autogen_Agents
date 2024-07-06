@@ -189,7 +189,7 @@ To ensure that the platform is up and running, we have implemented a series of t
 
 #### Pre-requisites
 
-1. **Environment Variables**: Ensure the following environment variables are set in a `.env` file in the root directory:
+1. **Environment Variables**: Ensure the following environment variables are set in a `.env` file in the `tests/architecture` directory:
     ```env
     RAY_ADDRESS=ray://localhost:10001
     MLFLOW_ADDRESS=localhost
