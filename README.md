@@ -183,6 +183,44 @@ This setup creates a Ray cluster head node within a Docker container, integrated
 
 Here is the ordered and completed bibliography with relevant links:
 
+### Testing the Platform
+
+To ensure that the platform is up and running, we have implemented a series of tests using pytest. These tests verify the connectivity and functionality of various components, including Ray, PostgreSQL, MLflow, and Minio. Here is an overview of the tests:
+
+#### Pre-requisites
+
+1. **Environment Variables**: Ensure the following environment variables are set in a `.env` file in the root directory:
+    ```env
+    RAY_ADDRESS=ray://localhost:10001
+    MLFLOW_ADDRESS=localhost
+    MLFLOW_TRACKING_URI=http://localhost
+    POSTGRES_HOST=localhost
+    POSTGRES_PORT=5432
+    POSTGRES_DB=your_db
+    POSTGRES_USER=your_user
+    POSTGRES_PASSWORD=your_password
+    MINIO_ADDRESS=localhost
+    MINIO_ACCESS_KEY=your_access_key
+    MINIO_SECRET_KEY=your_secret_key
+    ```
+#### Tests Overview
+
+1. **Ray Cluster**: Checks if the Ray cluster is up and running.
+2. **PostgreSQL Connection**: Verifies the connection to the PostgreSQL database.
+3. **pgvector Extension**: Ensures that the pgvector extension is properly set up in the PostgreSQL database.
+4. **PostgreSQL Databases**: Confirms that the required databases (`mlflowdb` and `vector_db`) are created in PostgreSQL.
+5. **MLflow Tracking Server**: Tests the connection to the MLflow tracking server.
+6. **Minio Connection**: Checks if the Minio server is up and running.
+7. **Minio Buckets**: Verifies that the required buckets (`data` and `mlflow`) are created in Minio.
+
+### Running the Tests
+
+To run the tests, go to `tests/architecture`, and execute the following command in your terminal:
+
+```sh
+pytest
+```
+
 ## Bibliography
 
 1. **Attention Is All You Need**
