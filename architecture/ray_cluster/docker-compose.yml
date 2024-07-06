@@ -7,6 +7,7 @@ services:
     ports:
       - "8265:8265"
       - "3000:3000"
+      - "10001:10001"
     command: ["head"]
     shm_size: '8g'
     environment:

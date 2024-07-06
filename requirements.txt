@@ -1,3 +1,6 @@
 ray==2.31.0
 mlflow==2.14.2
 psycopg2==2.9.5
+pytest==8.2.2
+pyzmq==26.0.3
+python-dotenv==1.0.1
