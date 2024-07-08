@@ -241,3 +241,7 @@ pytest
 
 7. **MLOps**
    - [MLOps: Continuous Delivery and Automation Pipelines in Machine Learning](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning?hl=es-419)
+
+8. **Embedding Strategies for documents**
+    - [Document Chunking for AI RAG Applications](https://medium.com/@david.richards.tech/document-chunking-for-rag-ai-applications-04363d48fbf7)
+    - [Chunking Strategies for LLM Applications](https://www.pinecone.io/learn/chunking-strategies/)

@@ -4,3 +4,10 @@ psycopg2==2.9.5
 pytest==8.2.2
 pyzmq==26.0.3
 python-dotenv==1.0.1
+fuzzywuzzy==0.18.0 
+python-Levenshtein==0.25.1
+nltk==3.8.1
+openai==1.35.10
+spacy==3.7.5
+tiktoken==0.7.0
+tenacity==8.5.0
