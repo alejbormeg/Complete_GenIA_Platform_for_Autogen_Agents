@@ -11,3 +11,4 @@ openai==1.35.10
 spacy==3.7.5
 tiktoken==0.7.0
 tenacity==8.5.0
+PyMuPDF==1.24.7
