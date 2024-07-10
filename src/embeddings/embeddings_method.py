@@ -7,6 +7,7 @@ import spacy
 import mlflow
 import fitz
 import pandas as pd
+import re
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz
 from psycopg2.extras import execute_values
@@ -59,6 +60,41 @@ def read_text_from_pdf(pdf_path):
     
     return extracted_text
 
+def execute_query(query: str, host: str, port: int, database: str, user: str, password: str):
+    """
+    Executes the given query on the specified database and returns the result.
+
+    Parameters:
+    - query: str: The SQL query to execute.
+    - host: str: The database host.
+    - port: int: The database port.
+    - database: str: The database name.
+    - user: str: The database user.
+    - password: str: The database password.
+
+    Returns:
+    - result: List[Tuple]: The result of the query execution.
+    """
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password
+        )
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
+        return result
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
 
 def retrieve_related_vectors(query_embedding, table, top_k=3):
     # Establish the database connection
@@ -159,7 +195,7 @@ def delete_all_vectors(table: str):
 def run_experiment(query_descriptions: List[str], queries: List[str], expected_sqls: List[str], chunk_size: int, chunk_strategy: str, embedding_model: str):
     remote_server_uri = "http://localhost"
     mlflow.set_tracking_uri(remote_server_uri)
-    mlflow.set_experiment("Embedding Strategy")
+    mlflow.set_experiment("Chunk-strategy")
     system_prompt = (
         "You are an AI assistant specialized in translating natural language questions into SQL queries."
         " Given a description of the data and a natural language question, generate the corresponding SQL query."
@@ -172,11 +208,12 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
     mlflow.log_param("embedding_model", embedding_model)
 
     total_similarity = 0
-    num_queries = len(queries)
-    
+    gpt_model = "gpt-4o"
+    top_k = 5
+
     # Log the model with OpenAI
     logged_model = mlflow.openai.log_model(
-        model="gpt-3.5-turbo",
+        model=gpt_model,
         task=openai.chat.completions,
         artifact_path="model",
         messages=[
@@ -185,68 +222,95 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
         ],
     )
 
-    queries_df = pd.DataFrame(
-            {
-                "query_description": [
-                    f"""Based on the embeddings in {table}, generate SQL to answer: {query_description}
-                    Context: {' '.join(related_texts)}"""
-                ]
-            }
-        )
+    mlflow.log_param("open_ai_model", gpt_model)
+    mlflow.log_param("top_k", top_k)
+    chunk_func = chunk_strategies[chunk_strategy]
+    text = read_text_from_pdf('src/embeddings/SocialNetworkDescription.pdf')
+    chunks = chunk_func(text, chunk_size) if chunk_strategy == "fixed" else chunk_func(text)
+
+    embeddings = [create_embedding(chunk, embedding_model, chunk_size) for chunk in chunks]
+
+    table = f"vector_embeddings_{chunk_size}"
+    vectors = [(i, embedding, chunk) for i, (embedding, chunk) in enumerate(zip(embeddings, chunks))]
+    store_vectors(vectors, table)
+
+    queries_df = pd.DataFrame({ "query_description": []})
+
     for i, (query_description, query, expected_sql) in enumerate(zip(query_descriptions, queries, expected_sqls)):
-        mlflow.log_param(f"query_{i+1}_description", query_description)
-
-        chunk_func = chunk_strategies[chunk_strategy]
-        text = read_text_from_pdf('src/embeddings/SocialNetworkDescription.pdf')
-        chunks = chunk_func(text, chunk_size) if chunk_strategy == "fixed" else chunk_func(text)
-
-        embeddings = [create_embedding(chunk, embedding_model, chunk_size) for chunk in chunks]
-
-        table = f"vector_embeddings_{chunk_size}"
-        vectors = [(i, embedding, chunk) for i, (embedding, chunk) in enumerate(zip(embeddings, chunks))]
-        store_vectors(vectors, table)
-
         # Evaluate the model on some example questions
         query_embedding = create_embedding(query_description, embedding_model, chunk_size)
-        related_vectors = retrieve_related_vectors(query_embedding, table, top_k=3)
+        related_vectors = retrieve_related_vectors(query_embedding, table, top_k=top_k)
 
         # Extract the text attribute for the related vectors
         related_texts = [text for _, _, text in related_vectors]
 
-        # Evaluate the model on some example questions
-        query_description_df = pd.DataFrame(
-            {
-                "query_description": [
-                    f"""Based on the embeddings in {table}, generate SQL to answer: {query_description}
-                    Context: {' '.join(related_texts)}"""
-                ]
-            }
-        )
+        # Create the description string
+        description = f"""
+            Based on the embeddings in {table}, generate the SQL query to answer: {query_description}.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: {' '.join(related_texts)}
+            """
 
-        response = mlflow.evaluate(
-            model=logged_model.model_uri,
-            model_type="question-answering",
-            data=query_description_df
-        )
+        # Create a DataFrame for the new row
+        new_row = pd.DataFrame({"query_description": [description]})
 
-        # Access the evaluation metrics and results
-        print(f"Evaluation Metrics: {response.metrics}")
-        eval_table = response.tables["eval_results_table"]
-        print(f"Evaluation Results Table: \n{eval_table}")
+        # Concatenate the new row to the DataFrame
+        queries_df = pd.concat([queries_df, new_row], ignore_index=True)
 
-        # Extracting generated SQL from the evaluation results
-        generated_sql = eval_table["outputs"]
+    response = mlflow.evaluate(
+        model=logged_model.model_uri,
+        model_type="question-answering",
+        data=queries_df
+    )
 
+    # Access the evaluation metrics and results
+    print(f"Evaluation Metrics: {response.metrics}")
+    eval_table = response.tables["eval_results_table"]
+
+    # Initialize total similarity
+    total_similarity = 0
+
+    # Add a new column to the DataFrame for similarity
+    eval_table["expected_query"] = ""
+    eval_table["similarity"] = 0
+    eval_table["result_coincidence"] = 0
+    # Extracting generated SQL from the evaluation results
+    for index, row in eval_table.iterrows():
+        generated_output = row["outputs"]
+        
+        # Extract SQL part using regex
+        match = re.search(r'`sql(.*?)`', generated_output, re.DOTALL)
+        if match:
+            generated_sql = match.group(1)
+        else:
+            generated_sql = ""
+
+        # Calculate similarity
+        expected_sql = expected_sqls[index]
         similarity = fuzz.ratio(generated_sql, expected_sql)
         total_similarity += similarity
+        
+        # Execute expected and generated SQL queries
+        expected_result = execute_query(expected_sql, host, port, "social_network_poc", user, password)
+        generated_result = execute_query(generated_sql, host, port, "social_network_poc", user, password)
+        
+        # Compare results
+        result_coincidence = 1 if expected_result == generated_result else 0
+        
+        # Store the similarity and result coincidence in the DataFrame
+        eval_table.at[index, "expected_query"] = expected_sql
+        eval_table.at[index, "similarity"] = similarity
+        eval_table.at[index, "result_coincidence"] = result_coincidence
 
-        mlflow.log_metric(f"query_{i+1}_similarity", similarity)
-        mlflow.log_text(system_prompt, f"query_{i+1}_prompt.txt")
-        mlflow.log_text(generated_sql, f"query_{i+1}_generated_sql.txt")
-        mlflow.log_text(expected_sql, f"query_{i+1}_expected_sql.txt")
+    # Calculate average similarity if needed
+    average_similarity = total_similarity / len(eval_table) if len(eval_table) > 0 else 0
 
-    average_similarity = total_similarity / num_queries
+    # Log the average similarity metric
     mlflow.log_metric("average_similarity", average_similarity)
+
+    # Log the DataFrame as an artifact
+    eval_table.to_csv("evaluation_results.csv", index=False)
+    mlflow.log_artifact("evaluation_results.csv")
     mlflow.end_run()
     
     # Delete all vectors from the table
