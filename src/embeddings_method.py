@@ -1,33 +1,18 @@
 import os
 import json
-import psycopg2
 import openai
-import nltk
-import spacy
 import mlflow
-import fitz
 import pandas as pd
 import re
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz
-from psycopg2.extras import execute_values
-from psycopg2.extras import Json
-from typing import List, Tuple
-
+from src.utils.files_utils import read_text_from_pdf
+from src.utils.embedding_utils import chunk_spacy, chunk_nltk, chunk_fixed, create_embedding
+from src.utils.database_utils import execute_query, retrieve_related_vectors, store_vectors, delete_all_vectors
+from typing import List
 
 # Load env variables
 load_dotenv()
-
-# Load spacy model
-# Make sure you do: python -m spacy download en_core_web_sm
-nlp = spacy.load('en_core_web_sm')
-
-# Database connection parameters
-host = "localhost"
-port = 5432
-database = "vector_db"
-user = "alex"
-password = "alexPostgresPassword"
 
 # OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -35,107 +20,6 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 # Load queries from the external JSON file
 with open('src/embeddings/queries.json', 'r') as file:
     queries_json = json.load(file)
-
-
-def read_text_from_pdf(pdf_path):
-    # Open the PDF file
-    pdf_document = fitz.open(pdf_path)
-    
-    # Initialize an empty string to store the extracted text
-    extracted_text = ""
-    
-    # Iterate through each page in the PDF
-    for page_num in range(len(pdf_document)):
-        # Get the page
-        page = pdf_document.load_page(page_num)
-        
-        # Extract text from the page
-        page_text = page.get_text()
-        
-        # Append the text of the current page to the extracted text
-        extracted_text += page_text + "\n"
-    
-    # Close the PDF document
-    pdf_document.close()
-    
-    return extracted_text
-
-def execute_query(query: str, host: str, port: int, database: str, user: str, password: str):
-    """
-    Executes the given query on the specified database and returns the result.
-
-    Parameters:
-    - query: str: The SQL query to execute.
-    - host: str: The database host.
-    - port: int: The database port.
-    - database: str: The database name.
-    - user: str: The database user.
-    - password: str: The database password.
-
-    Returns:
-    - result: List[Tuple]: The result of the query execution.
-    """
-    conn = None
-    try:
-        conn = psycopg2.connect(
-            host=host,
-            port=port,
-            database=database,
-            user=user,
-            password=password
-        )
-        cursor = conn.cursor()
-        cursor.execute(query)
-        result = cursor.fetchall()
-        cursor.close()
-        return result
-    except Exception as e:
-        print(f"Error executing query: {e}")
-        return None
-    finally:
-        if conn:
-            conn.close()
-
-def retrieve_related_vectors(query_embedding, table, top_k=3):
-    # Establish the database connection
-    conn = psycopg2.connect(
-        host=host,
-        port=port,
-        dbname=database,
-        user=user,
-        password=password
-    )
-    cursor = conn.cursor()
-    
-    # Execute the SQL query to retrieve the most related vectors
-    cursor.execute(f"""
-        SELECT id, embedding, text
-        FROM {table}
-        ORDER BY embedding <-> %s::vector
-        LIMIT {top_k};
-    """, (query_embedding,))
-    
-    # Fetch all related vectors
-    related_vectors = cursor.fetchall()
-    
-    # Close the cursor and connection
-    cursor.close()
-    conn.close()
-    
-    return related_vectors
-
-
-# Chunk strategies
-def chunk_fixed(sentences: List[str], chunk_size: int) -> List[List[str]]:
-    return [sentences[i:i + chunk_size] for i in range(0, len(sentences), chunk_size)]
-
-def chunk_nltk(text: str) -> List[str]:
-    nltk.download('punkt')
-    return nltk.tokenize.sent_tokenize(text)
-
-def chunk_spacy(text: str) -> List[str]:
-    doc = nlp(text)
-    return [sent.text for sent in doc.sents]
 
 chunk_strategies = {
     "fixed": chunk_fixed,
@@ -149,47 +33,6 @@ embedding_models = {
     "text-embedding-3-large": "text-embedding-3-large",
     "text-embedding-ada-002": "text-embedding-ada-002"
 }
-
-# Function to create embeddings
-def create_embedding(text: str, model: str, dimensions: int = None) -> List[float]:
-    if model == "text-embedding-3-large":
-        response = openai.embeddings.create(model=model, input=text, dimensions=dimensions).data[0].embedding
-    else:
-        response = openai.embeddings.create(model=model, input=text).data[0].embedding[:dimensions]
-
-    return response
-
-# Function to store vectors in PostgreSQL
-def store_vectors(vectors: List[Tuple[int, List[float], str]], table: str):
-    conn = psycopg2.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password
-    )
-    try:
-        with conn.cursor() as cur:
-            execute_values(cur, f"INSERT INTO {table} (entity_id, embedding, text) VALUES %s", vectors)
-        conn.commit()
-    finally:
-        conn.close()
-
-# Function to delete all vectors from a table
-def delete_all_vectors(table: str):
-    conn = psycopg2.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password
-    )
-    try:
-        with conn.cursor() as cur:
-            cur.execute(f"DELETE FROM {table}")
-        conn.commit()
-    finally:
-        conn.close()
 
 # Main experiment function
 def run_experiment(query_descriptions: List[str], queries: List[str], expected_sqls: List[str], chunk_size: int, chunk_strategy: str, embedding_model: str):
@@ -208,8 +51,8 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
     mlflow.log_param("embedding_model", embedding_model)
 
     total_similarity = 0
-    gpt_model = "gpt-4o"
-    top_k = 5
+    gpt_model = "gpt-3.5-turbo"
+    top_k = 3
 
     # Log the model with OpenAI
     logged_model = mlflow.openai.log_model(
@@ -291,8 +134,8 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
         total_similarity += similarity
         
         # Execute expected and generated SQL queries
-        expected_result = execute_query(expected_sql, host, port, "social_network_poc", user, password)
-        generated_result = execute_query(generated_sql, host, port, "social_network_poc", user, password)
+        expected_result = execute_query(query=expected_sql, database="social_network_poc")
+        generated_result = execute_query(query=generated_sql, database="social_network_poc")
         
         # Compare results
         result_coincidence = 1 if expected_result == generated_result else 0
