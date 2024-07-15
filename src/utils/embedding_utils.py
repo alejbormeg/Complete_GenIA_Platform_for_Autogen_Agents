@@ -1,7 +1,7 @@
 import openai
 import nltk
 import spacy
-from typing import List, Tuple
+from typing import List
 
 
 # Function to create embeddings
