@@ -1,0 +1,8 @@
+name: embedding_environment
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - ray[serve]==2.31.0
+      - openai==1.35.10
+      - requests

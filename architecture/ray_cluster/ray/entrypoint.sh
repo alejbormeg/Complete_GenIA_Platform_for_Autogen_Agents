@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Function to install Miniconda
+install_miniconda() {
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
+    rm Miniconda3-latest-Linux-x86_64.sh
+    export PATH="$HOME/miniconda/bin:$PATH"
+    conda init
+}
+
+# Function to create and activate Conda environment
+setup_conda_env() {
+    conda create -y -n ray_env python=3.10
+    source $HOME/miniconda/etc/profile.d/conda.sh
+    conda activate ray_env
+    pip install ray==2.31.0
+    pip install ray[serve] fastapi requests
+}
+
 # Function to install Prometheus and Grafana
 install_prometheus_grafana() {
     # Install Prometheus
@@ -14,6 +32,19 @@ install_prometheus_grafana() {
     mv grafana-8.3.0 /usr/share/grafana
     rm grafana-8.3.0.linux-amd64.tar.gz
 }
+
+# Install Miniconda if not already installed
+if [ ! -d "$HOME/miniconda" ]; then
+    install_miniconda
+fi
+
+# Create and activate Conda environment
+source $HOME/miniconda/etc/profile.d/conda.sh
+if ! conda info --envs | grep -q "ray_env"; then
+    setup_conda_env
+else
+    conda activate ray_env
+fi
 
 # Install Prometheus and Grafana if not already installed
 if [ ! -d "/etc/prometheus" ] || [ ! -d "/usr/share/grafana" ]; then

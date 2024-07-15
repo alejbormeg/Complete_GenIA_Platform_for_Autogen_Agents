@@ -5,10 +5,17 @@ services:
     build: ./ray
     container_name: ray-head
     ports:
-      - "8265:8265"
-      - "3000:3000"
-      - "10001:10001"
-      - "8000:8000"
+      - "8265:8265"   # Ray dashboard
+      - "3000:3000"   # Custom port
+      - "10001:10001" # Custom port
+      - "8000:8000"   # Custom port
+      - "6379:6379"   # Redis default port
+      - "6380:6380"   # Redis default port
+      - "6381:6381"   # Redis default port
+      - "12345:12345" # Ray gRPC port (head node)
+      - "12346:12346" # Ray gRPC port (worker node)
+      - "8001:8001"   # Custom port
+      - "8076:8076"   # Custom port
     command: ["head"]
     shm_size: '8g'
     environment:
