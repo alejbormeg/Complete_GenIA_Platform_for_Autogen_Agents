@@ -7,12 +7,13 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProx
 class PgVectorRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(self, name, retrieve_config, client, **kwargs):
         super().__init__(name=name, retrieve_config=retrieve_config, code_execution_config=False)
-        self.openai_client = client
+        self.openai = client
+        self.retrieve_config = retrieve_config
 
     def retrieve_docs(self, problem: str, n_results: int = 3, search_string: str = "", **kwargs):
-        query_embedding = self.openai_client.embeddings.create(model=os.getenv("GPT_EMBEDDING_ENGINE"), input=[problem]).data[0].embedding
+        query_embedding = self.openai.embeddings.create(model=os.getenv("GPT_EMBEDDING_ENGINE"), input=problem, dimensions=1536).data[0].embedding
         results = self.retrieve_related_vectors(query_embedding, self.retrieve_config["table_name"], top_k=n_results)
-        self._results = [[{'id': match[0], 'content': match[2]}, match[1]] for match in results]
+        self._results = [[({'id': match[0], 'content': match[2]}, match[3])] for match in results]
         return self._results
     
 
@@ -27,9 +28,9 @@ class PgVectorRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         cursor = conn.cursor()
         
         cursor.execute(f"""
-            SELECT id, embedding, text
+            SELECT id, embedding, text, embedding <-> %s::vector AS score
             FROM {table}
-            ORDER BY embedding <-> %s::vector
+            ORDER BY score
             LIMIT {top_k};
         """, (query_embedding,))
         
@@ -47,7 +48,7 @@ def termination_msg(x):
 def setup_rag_pgvector_agent(name, retrieve_config, client):
 
     return PgVectorRetrieveUserProxyAgent(
-        name="DRA",
+        name="PgVector Agent",
         retrieve_config=retrieve_config,
         client=client,
         is_termination_msg=termination_msg,

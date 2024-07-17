@@ -73,7 +73,7 @@ async def call_rag_chat(task, websocket=None):
         document_retrieval_agent.n_results = n_results
         # Check if we need to update the context.
         update_context_case1, update_context_case2 = document_retrieval_agent._check_update_context(message)
-        
+        print(f"Update_context_1: ")
         if (update_context_case1 or update_context_case2) and document_retrieval_agent.update_context:
             document_retrieval_agent.problem = message if not hasattr(document_retrieval_agent, "problem") else document_retrieval_agent.problem
             _, ret_msg = document_retrieval_agent._generate_retrieve_user_reply(message)
@@ -113,15 +113,12 @@ async def call_rag_chat(task, websocket=None):
     manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
     # Start chatting with the boss as this is the user proxy agent.
-    # await user_proxy.a_initiate_chat(
-    #     manager,
-    #     message=task,
-    # )
-    user_proxy.initiate_chat(
-        planner,
+    await user_proxy.a_initiate_chat(
+        manager,
         message=task,
     )
+
     return groupchat.messages
 
 if __name__ == "__main__":
-    asyncio.run(call_rag_chat("How can I use code commit to push my code to AWS?"))
+    asyncio.run(call_rag_chat("Retrieve all users with their email addresses"))

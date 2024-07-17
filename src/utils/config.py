@@ -13,9 +13,8 @@ def retrieve_config(client):
         "table_name": "vector_embeddings_1536",
         "chunk_token_size": 500,
         "model": os.getenv('GPT_MODEL'),
-        "collection_name": "groupchat",
         "get_or_create": True,
-        "embedding_function": lambda x: client.embeddings.create(input=x, model="text-embedding-3-large").data[0].embedding,
+        "embedding_function": lambda x: client.embeddings.create(input=x, model="text-embedding-3-large", dimensions=1536).data[0].embedding,
         "vector_db": None,
     }
 
