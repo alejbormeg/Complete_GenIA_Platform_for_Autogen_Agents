@@ -19,23 +19,22 @@ from agents.user_proxy_agent import setup_user_proxy_agent
 
 load_dotenv()
 
-# Set up configurations and agents
-openai_client = create_openai_client()
-retrieve_config_ = retrieve_config(openai_client)
-llm_config = config()
-
-
 
 logger = logging.getLogger()
 
 @serve.deployment
 class RAGChatEndpoint:
-    def __init__(self, llm_config, retrieve_config_) -> None:
-        self.document_retrieval_agent = setup_rag_pgvector_agent(name="DRA", retrieve_config=retrieve_config_, client=openai_client)
+    def __init__(self) -> None:
+        # These are now initialized within the instance to avoid serialization issues.
+        openai_client = create_openai_client()
+        self.retrieve_config_ = retrieve_config(openai_client)
+        self.llm_config = config()
+        
+        self.document_retrieval_agent = setup_rag_pgvector_agent(name="DRA", retrieve_config=self.retrieve_config_, client=openai_client)
         self.user_proxy = setup_user_proxy_agent()
-        self.planner = setup_planner_agent(llm_config)
-        self.nl_to_sql = setup_nl_to_sql_agent(llm_config)
-        self.feedback_loop_agent = setup_feedback_loop_agent(llm_config)
+        self.planner = setup_planner_agent(self.llm_config)
+        self.nl_to_sql = setup_nl_to_sql_agent(self.llm_config)
+        self.feedback_loop_agent = setup_feedback_loop_agent(self.llm_config)
 
     async def call_rag_chat(self, task):
         # Reset and setup agents - ideally this should be encapsulated in methods or managed statefully
@@ -53,7 +52,7 @@ class RAGChatEndpoint:
             speaker_selection_method=self.state_transition_manager,
             allow_repeat_speaker=False,
         )
-        manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+        manager = GroupChatManager(groupchat=groupchat, llm_config=self.llm_config)
         await self.user_proxy.a_initiate_chat(manager, message=task)
         return groupchat.messages
 
@@ -83,7 +82,7 @@ class RAGChatEndpoint:
         else:
             return "auto"
 
-@serve.deployment
+@serve.deployment()
 class PGVectorConnection:
     async def insert_into_db(self, chunk_size, vectors):
         table = f"vector_embeddings_{chunk_size}"
@@ -199,7 +198,7 @@ runtime_env = {
 
 test2vectors_app = Text2Vectors.bind(ChunkStrategy.bind(), EmbeddingEndpoints.bind())
 pgvector_app = PGVectorConnection.bind()
-agents_chat = RAGChatEndpoint(llm_config, retrieve_config_).bind()
+agents_chat = RAGChatEndpoint.bind()
 api_gateway_app = APIGateway.bind(test2vectors_app, pgvector_app, agents_chat)
 
 # Use serve.run to deploy with the runtime environment
