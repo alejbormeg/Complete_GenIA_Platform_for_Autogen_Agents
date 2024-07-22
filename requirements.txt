@@ -16,3 +16,4 @@ pyautogen==0.2.32
 chromadb==0.5.4
 markdownify==0.13.1
 pypdf==4.3.0
+gradio==4.38.1

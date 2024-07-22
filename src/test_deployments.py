@@ -1,7 +1,7 @@
 import requests
 import json
 
-url = "http://localhost:8000/text2vectors"
+url = "http://localhost:8000/api/text_to_vectordb"
 
 # Example payload
 payload = {
