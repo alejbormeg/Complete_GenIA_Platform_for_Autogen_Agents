@@ -9,6 +9,7 @@ from ray import serve
 from ray.serve.handle import DeploymentHandle
 from typing import List
 from psycopg2.extras import execute_values
+from fastapi import UploadFile
 # Import necessary modules and configurations
 
 
@@ -192,6 +193,17 @@ class Text2Vectors:
         vectors = [(i, embedding, chunk) for i, (embedding, chunk) in enumerate(zip(embeddings, chunks))]
 
         return vectors
+    
+    async def extract_text_from_pdf(self, file_bytes: bytes):
+        import fitz
+        pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
+        text = ""
+        for page_num in range(len(pdf_document)):
+            page = pdf_document.load_page(page_num)
+            text += page.get_text()
+        return text
+
+
 
 @serve.deployment
 class ChunkStrategy:
@@ -220,29 +232,46 @@ class APIGateway:
 
     async def __call__(self, http_request):
         try:
-            request = await http_request.json()
-            action = http_request.url.path.split("/")[-1]            
-            logger.info(f"Received action: {action} with data: {request}")
+            if http_request.method == "POST":
+                action = http_request.url.path.split("/")[-1]
+                logger.info(f"Received action: {action} with data: {http_request}")
 
-            if action == "compute_vectors":
-                return await self.text_to_vectors_handle.compute_vectors.remote(request)
-            if action == "text_to_vectordb":
-                vectors = await self.text_to_vectors_handle.compute_vectors.remote(request)
-                logger.info(f"Embeddings: {vectors}")
-                chunk_size = request["chunk_size"]
-                table = f"vector_embeddings_{chunk_size}"
-                logger.info(f"Inserting into table {table}")
-                return await self.pgvector_handle.insert_into_db.remote(chunk_size, vectors)
-            if action == "agents_chat":
-                return await self.agents_chat.call_rag_chat.remote(request["task"])
-            if action == "execute_query":
-                return await self.pgvector_handle.execute_query.remote(request["database"], request["query"])
+                if action == "compute_vectors":
+                    request = await http_request.json()
+                    return await self.text_to_vectors_handle.compute_vectors.remote(request)
+                if action == "text_to_vectordb":
+                    request = await http_request.json()
+                    vectors = await self.text_to_vectors_handle.compute_vectors.remote(request)
+                    logger.info(f"Embeddings: {vectors}")
+                    chunk_size = request["chunk_size"]
+                    table = f"vector_embeddings_{chunk_size}"
+                    logger.info(f"Inserting into table {table}")
+                    return await self.pgvector_handle.insert_into_db.remote(chunk_size, vectors)
+                if action == "agents_chat":
+                    request = await http_request.json()
+                    return await self.agents_chat.call_rag_chat.remote(request["task"])
+                if action == "execute_query":
+                    request = await http_request.json()
+                    return await self.pgvector_handle.execute_query.remote(request["database"], request["query"])
+                if action == "upload_pdf":
+                    form = await http_request.form()
+                    file = form["file"].file.read()
+                    chunk_size = form["chunk_size"]
+                    embedding_model = form["embedding_model"]
+                    text = await self.text_to_vectors_handle.extract_text_from_pdf.remote(file)
+                    vectors = await self.text_to_vectors_handle.compute_vectors.remote({"text": text, "chunk_size": int(chunk_size), "embedding_model": embedding_model})
+                    await self.pgvector_handle.insert_into_db.remote(chunk_size, vectors)
+                    return {"result": "document uploaded successfully"}
+                else:
+                    logger.error(f"Unknown or missing action: {action}")
+                    return {"error": "Unknown or missing action"}
             else:
-                logger.error(f"Unknown or missing action: {action}")
-                return {"error": "Unknown or missing action"}
+                return {"error": "Invalid request method"}
         except Exception as e:
             logger.error(f"Error handling request: {e}", exc_info=True)
             return {"error": "Failed to process request", "details": str(e)}
+
+    
 
 # Initialize Ray and Serve
 os.environ['RAY_ADDRESS'] = "ray://localhost:10001"
