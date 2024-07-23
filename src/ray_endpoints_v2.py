@@ -2,29 +2,32 @@ import ray
 import os
 import psycopg2
 import logging
+import utils
+import agents
 from dotenv import load_dotenv
 from ray import serve
 from ray.serve.handle import DeploymentHandle
 from typing import List
 from psycopg2.extras import execute_values
 # Import necessary modules and configurations
-from autogen import GroupChat, GroupChatManager
-from utils.utils import send_messages_to_front
-from utils.config import create_openai_client, retrieve_config, config
-from agents.feedback_loop_agent import setup_feedback_loop_agent
-from agents.nl_to_sql_agent import setup_nl_to_sql_agent
-from agents.planner_agent import setup_planner_agent
-from agents.rag_pgvector_agent import setup_rag_pgvector_agent
-from agents.user_proxy_agent import setup_user_proxy_agent
+
 
 load_dotenv()
 
 
 logger = logging.getLogger()
 
-@serve.deployment
+@serve.deployment()
 class RAGChatEndpoint:
     def __init__(self) -> None:
+        from utils.utils import send_messages_to_front
+        from utils.config import create_openai_client, retrieve_config, config
+        from agents.feedback_loop_agent import setup_feedback_loop_agent
+        from agents.nl_to_sql_agent import setup_nl_to_sql_agent
+        from agents.planner_agent import setup_planner_agent
+        from agents.rag_pgvector_agent import setup_rag_pgvector_agent
+        from agents.user_proxy_agent import setup_user_proxy_agent
+
         # These are now initialized within the instance to avoid serialization issues.
         openai_client = create_openai_client()
         self.retrieve_config_ = retrieve_config(openai_client)
@@ -37,12 +40,46 @@ class RAGChatEndpoint:
         self.feedback_loop_agent = setup_feedback_loop_agent(self.llm_config)
 
     async def call_rag_chat(self, task):
+        from autogen import GroupChat, GroupChatManager
+        from typing_extensions import Annotated
+
         # Reset and setup agents - ideally this should be encapsulated in methods or managed statefully
         self.user_proxy.reset()
         self.planner.reset()
         self.document_retrieval_agent.reset()
         self.nl_to_sql.reset()
         self.feedback_loop_agent.reset()
+
+        def retrieve_content(
+            message: Annotated[
+                str,
+                "Refined message which keeps the original meaning and can be used to retrieve content for question answering.",
+            ],
+            n_results: Annotated[int, "number of results"] = 3,
+        ) -> str:
+            self.document_retrieval_agent.n_results = n_results
+            # Check if we need to update the context.
+            update_context_case1, update_context_case2 = self.document_retrieval_agent._check_update_context(message)
+            print(f"Update_context_1: ")
+            if (update_context_case1 or update_context_case2) and self.document_retrieval_agent.update_context:
+                self.document_retrieval_agent.problem = message if not hasattr(self.document_retrieval_agent, "problem") else self.document_retrieval_agent.problem
+                _, ret_msg = self.document_retrieval_agent._generate_retrieve_user_reply(message)
+            else:
+                _context = {"problem": message, "n_results": n_results}
+                ret_msg = self.document_retrieval_agent.message_generator(self.document_retrieval_agent, None, _context)
+            return ret_msg if ret_msg else message
+    
+        agents = [self.user_proxy, self.planner, self.nl_to_sql, self.feedback_loop_agent]
+
+        self.document_retrieval_agent.human_input_mode = "NEVER"
+
+        for caller in [self.planner]:
+            d_retrieve_content = caller.register_for_llm(
+                description= " Retrieve content for question answering", api_style="function"
+            )(retrieve_content)
+
+        for executor in agents:
+            executor.register_for_execution()(d_retrieve_content)
 
         # Initialize chat components and start chatting process
         groupchat = GroupChat(
@@ -106,6 +143,24 @@ class PGVectorConnection:
         finally:
             conn.close()
     
+    def execute_query(self, database: str, query: str):
+        conn = psycopg2.connect(
+            host=os.getenv("POSTGRESQL_HOST"),
+            port=os.getenv("POSTGRESQL_PORT"),
+            database=database,
+            user=os.getenv("POSTGRESQL_USER"),
+            password=os.getenv("POSTGRESQL_PASSWORD")
+        )
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                result = cur.fetchall()
+            conn.commit()
+            return result
+        finally:
+            conn.close()
+        
     def delete_all_vectors(self, table: str):
         conn = psycopg2.connect(
             host=os.getenv("POSTGRESQL_HOST"),
@@ -180,6 +235,8 @@ class APIGateway:
                 return await self.pgvector_handle.insert_into_db.remote(chunk_size, vectors)
             if action == "agents_chat":
                 return await self.agents_chat.call_rag_chat.remote(request["task"])
+            if action == "execute_query":
+                return await self.pgvector_handle.execute_query.remote(request["database"], request["query"])
             else:
                 logger.error(f"Unknown or missing action: {action}")
                 return {"error": "Unknown or missing action"}
@@ -189,7 +246,7 @@ class APIGateway:
 
 # Initialize Ray and Serve
 os.environ['RAY_ADDRESS'] = "ray://localhost:10001"
-ray.init()
+ray.init(runtime_env={"py_modules": [utils, agents]})
 serve.start()
 
 runtime_env = {
