@@ -1,13 +1,22 @@
 import requests
 import json
 
-url = "http://localhost:8000/text2vectors"
+url = "http://localhost:8000/api/execute_query"
 
 # Example payload
+# payload = {
+#     "text": "This is a sample text",
+#     "chunk_size": 1536,
+#     "embedding_model": "text-embedding-3-large"
+# }
+
 payload = {
-    "text": "This is a sample text",
-    "chunk_size": 1536,
-    "embedding_model": "text-embedding-3-large"
+    "task": "Retrieve all users with their email addresses"
+}
+
+payload = {
+    "database": "social_network_poc",
+    "query": "SELECT username, email FROM Users;"
 }
 
 response = requests.post(url, data=json.dumps(payload))
