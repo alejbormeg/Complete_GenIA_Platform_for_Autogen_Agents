@@ -20,11 +20,11 @@ def extract_column_names(query):
                 columns.append(identifier.get_real_name())
     return columns
 
-def upload_document(file):
+def upload_document(file, database):
     response = requests.post(
         f"{backend_url}/upload_pdf", 
         files={"file": ("file.pdf", file, "application/pdf")}, 
-        data={"chunk_size": "1536", "embedding_model": "text-embedding-3-large"}
+        data={"chunk_size": "1536", "embedding_model": "text-embedding-3-large", "database": database}
     )
     return response.json()
 
@@ -49,10 +49,10 @@ def execute_query(database, query):
         return df
     return result
 
-def process_query(task):
+def process_query(task, database):
     response = requests.post(
         f"{backend_url}/agents_chat",
-        json={"task": task},
+        json={"task": task, "database": database},
     )
     messages = response.json()
     formatted_messages = ""
@@ -69,8 +69,9 @@ with gr.Blocks(css=".scrollable-conversation {max-height: 600px; overflow-y: aut
     with gr.Row():
         with gr.Column(scale=1):
             file_input = gr.File(label="Upload PDF/DOC", type="binary")
+            file_db_input = gr.Textbox(lines=1, placeholder="Database name...", label="Database Name for File")
             file_output = gr.JSON()
-            file_input.change(upload_document, file_input, file_output)
+            file_input.change(upload_document, [file_input, file_db_input], file_output)
 
             query_input = gr.Textbox(lines=3, placeholder="Write your SQL query here...", label="SQL Query")
             db_input = gr.Textbox(lines=1, placeholder="Database name...", label="Database Name")
@@ -80,10 +81,11 @@ with gr.Blocks(css=".scrollable-conversation {max-height: 600px; overflow-y: aut
             query_button.click(execute_query, [db_input, query_input], query_response_output)
 
             task_input = gr.Textbox(lines=3, placeholder="Describe the task here...", label="Task Description")
+            task_db_input = gr.Textbox(lines=1, placeholder="Database name...", label="Database Name for Task")
 
             process_button = gr.Button("Process Task")
             response_output = gr.Markdown(label="Agent Responses")
-            process_button.click(process_query, task_input, response_output)
+            process_button.click(process_query, [task_input, task_db_input], response_output)
             conversation_history = gr.Markdown(label="Conversation History", elem_id="scrollable-conversation")
 
 demo.launch()
