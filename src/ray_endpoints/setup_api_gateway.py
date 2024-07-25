@@ -26,20 +26,20 @@ class APIGateway:
                     logger.info(f"Embeddings: {vectors}")
                     chunk_size = request["chunk_size"]
                     table = f"vector_embeddings_{chunk_size}"
-                    database = request["database"]
+                    database = request.get("database", None)
                     logger.info(f"Inserting into table {table}")
                     return await self.pgvector_handle.insert_into_db.remote(chunk_size, vectors, database)
                 if action == "agents_chat":
                     request = await http_request.json()
-                    return await self.agents_chat.call_rag_chat.remote(request["task"], request["database"])
+                    return await self.agents_chat.call_rag_chat.remote(request["task"], request.get("database", None))
                 if action == "execute_query":
                     request = await http_request.json()
-                    return await self.pgvector_handle.execute_query.remote(request["database"], request["query"])
+                    return await self.pgvector_handle.execute_query.remote(request.get("database", None), request["query"])
                 if action == "upload_pdf":
                     form = await http_request.form()
                     file = form["file"].file.read()
                     chunk_size = form["chunk_size"]
-                    database = form["database"]
+                    database = form.get("database", None)
                     embedding_model = form["embedding_model"]
                     text = await self.text_to_vectors_handle.extract_text_from_pdf.remote(file)
                     vectors = await self.text_to_vectors_handle.compute_vectors.remote({"text": text, "chunk_size": int(chunk_size), "embedding_model": embedding_model})
