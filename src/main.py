@@ -6,25 +6,31 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 
+# Load environment variables from a .env file
 load_dotenv()
 
+# Backend URL for API endpoints
 backend_url = "http://localhost:8000/api"
 
+# Function to extract column names from an SQL query
 def extract_column_names(query):
     parsed = sqlparse.parse(query)[0]
     tokens = parsed.tokens
     columns = []
     select_found = False
+
     for token in tokens:
         if token.ttype is sqlparse.tokens.DML and token.value.upper() == "SELECT":
             select_found = True
         if select_found and token.ttype is sqlparse.tokens.Wildcard:
-            columns.append(token.value)
+            return []  # Return an empty list if wildcard (*) is found
         elif select_found and isinstance(token, sqlparse.sql.IdentifierList):
             for identifier in token.get_identifiers():
                 columns.append(identifier.get_real_name())
+
     return columns
 
+# Function to upload a document to the backend
 def upload_document(file, database, new_database):
     db_name = database if not new_database else new_database
     response = requests.post(
@@ -34,6 +40,7 @@ def upload_document(file, database, new_database):
     )
     return response.json()
 
+# Function to execute an SQL query
 def execute_query(database, query):
     response = requests.post(
         f"{backend_url}/execute_query",
@@ -41,14 +48,26 @@ def execute_query(database, query):
     )
     result = response.json()
     print("Query Result:", result)
+    
+    # Extract column names from the query
     columns = extract_column_names(query)
+    
+    # If columns are empty, create empty column names based on the result
     if not columns:
-        columns = ["Column1", "Column2"]
+        if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
+            columns = [f"Column{i+1}" for i in range(len(result[0]))]
+        else:
+            columns = ["Column1", "Column2"]
+
+    # Convert result to DataFrame if it's a list
     if isinstance(result, list):
         df = pd.DataFrame(result, columns=columns)
         return df
+    
     return result
 
+
+# Function to process a query task
 def process_query(task, database):
     response = requests.post(
         f"{backend_url}/agents_chat",
@@ -63,6 +82,7 @@ def process_query(task, database):
             formatted_messages += f"**{message['name']}** ({message['role']}): <span style='color:green'>Function Call - {message['function_call']['name']} with arguments {message['function_call']['arguments']}</span>\n\n"
     return formatted_messages.strip()
 
+# Function to fetch available databases from PostgreSQL
 def fetch_databases():
     conn = psycopg2.connect(
         host=os.getenv("POSTGRESQL_HOST"),
@@ -79,6 +99,7 @@ def fetch_databases():
     databases.insert(0, "All")  # 'All' option is added at the beginning after sorting
     return databases
 
+# Function to refresh the dropdown menu with updated databases
 def refresh_dropdown(input_val):
     return gr.update(choices=fetch_databases())
 
