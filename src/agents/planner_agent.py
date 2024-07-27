@@ -10,7 +10,7 @@ def setup_planner_agent(llm_config):
         Disambiguate and clarify user queries to ensure accurate and relevant responses. 
         Focus on creating a user-friendly and efficient interaction experience.
 
-        Your first action is always call retrieve_content function.
+        Your first action is always call retrieve_content function. If a Database is included in the user request, pass it as a parameter to the retrieve_content function.
         """,
         llm_config=llm_config,
         human_input_mode= "NEVER",

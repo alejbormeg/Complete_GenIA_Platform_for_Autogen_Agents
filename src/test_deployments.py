@@ -1,7 +1,7 @@
 import requests
 import json
 
-url = "http://localhost:8000/api/execute_query"
+url = "http://localhost:8000/api/agents_chat"
 
 # Example payload
 # payload = {
@@ -14,10 +14,10 @@ payload = {
     "task": "Retrieve all users with their email addresses"
 }
 
-payload = {
-    "database": "social_network_poc",
-    "query": "SELECT username, email FROM Users;"
-}
+# payload = {
+#     "database": "social_network_poc",
+#     "query": "SELECT username, email FROM Users;"
+# }
 
 response = requests.post(url, data=json.dumps(payload))
 
