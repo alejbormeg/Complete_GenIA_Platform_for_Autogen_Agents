@@ -1,0 +1,909 @@
+query_description,outputs,token_count,expected_query,similarity,result_coincidence
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Retrieve all users with their email addresses.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+
+            ","```sql
+SELECT username, email 
+FROM Users;
+```",12,"SELECT username, email FROM Users;",96,1
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: List all tweets with their authors.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+
+            ","```sql
+SELECT t.content AS tweet, u.username AS author
+FROM Tweets t
+JOIN Users u ON t.user_id = u.user_id;
+```",31,"SELECT t.content, u.username FROM Tweets t JOIN Users u ON t.user_id = u.user_id;",87,1
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Find who user 'alice' is following.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+
+            ","```sql
+SELECT u.username
+FROM Users u
+JOIN Follows f ON u.user_id = f.followee_id
+JOIN Users alice ON f.follower_id = alice.user_id
+WHERE alice.username = 'alice';
+```",46,SELECT u2.username FROM Users u1 JOIN Follows f ON u1.user_id = f.follower_id JOIN Users u2 ON f.followee_id = u2.user_id WHERE u1.username = 'alice';,88,1
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Count the number of followers for each user.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+
+            ","```sql
+SELECT u.user_id, COUNT(f.follower_id) AS follower_count
+FROM Users u
+LEFT JOIN Follows f ON u.user_id = f.followee_id
+GROUP BY u.user_id;
+```",44,"SELECT u.username, COUNT(f.follower_id) AS followers_count FROM Users u LEFT JOIN Follows f ON u.user_id = f.followee_id GROUP BY u.user_id;",94,0
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Retrieve all tweets and their respective like counts.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+ PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh
+            ","```sql
+SELECT t.tweet_id, t.content, COALESCE(COUNT(l.like_id), 0) AS like_count
+FROM Tweets t
+LEFT JOIN Likes l ON t.tweet_id = l.tweet_id
+GROUP BY t.tweet_id, t.content;
+```",58,"SELECT t.content, COUNT(l.like_id) AS like_count FROM Tweets t LEFT JOIN Likes l ON t.tweet_id = l.tweet_id GROUP BY t.tweet_id;",85,0
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Find all comments for a specific tweet.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+ PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh
+            ","```sql
+SELECT content, created_at
+FROM Comments
+WHERE tweet_id = <specific_tweet_id>;
+```
+
+Replace `<specific_tweet_id>` with the actual ID of the tweet for which you want to find the comments.",45,"SELECT c.content, u.username FROM Comments c JOIN Users u ON c.user_id = u.user_id WHERE c.tweet_id = 1;",59,0
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: List users who liked tweets posted by 'alice'.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+ PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh
+            ","```sql
+SELECT DISTINCT u.username
+FROM Likes l
+JOIN Tweets t ON l.tweet_id = t.tweet_id
+JOIN Users u ON l.user_id = u.user_id
+WHERE t.user_id = (SELECT user_id FROM Users WHERE username = 'alice');
+```",56,SELECT DISTINCT u.username FROM Likes l JOIN Tweets t ON l.tweet_id = t.tweet_id JOIN Users u ON l.user_id = u.user_id WHERE t.user_id = (SELECT user_id FROM Users WHERE username = 'alice');,97,1
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Find the tweet with the most comments.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+ PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh
+            ","```sql
+SELECT t.tweet_id, t.content, COUNT(c.comment_id) AS comment_count
+FROM Tweets t
+JOIN Comments c ON t.tweet_id = c.tweet_id
+GROUP BY t.tweet_id, t.content
+ORDER BY comment_count DESC
+LIMIT 1;
+```",60,"SELECT t.content, COUNT(c.comment_id) AS comments_count FROM Tweets t LEFT JOIN Comments c ON t.tweet_id = c.tweet_id GROUP BY t.tweet_id ORDER BY comments_count DESC LIMIT 1;",89,0
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: Retrieve users who have never posted a tweet.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+
+            ","```sql
+SELECT u.user_id, u.username, u.email, u.bio, u.created_at
+FROM Users u
+LEFT JOIN Tweets t ON u.user_id = t.user_id
+WHERE t.tweet_id IS NULL;
+```",47,SELECT u.username FROM Users u LEFT JOIN Tweets t ON u.user_id = t.user_id WHERE t.tweet_id IS NULL;,81,0
+"
+            Based on the embeddings in vector_embeddings_1536, generate the SQL query to answer: List tweets liked by users who follow 'alice'.
+            Please provide only the SQL code enclosed within ```sql...``` characters.
+            Context: ip.
+• FOREIGN KEY (followee_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a followee user deletes the follow
+relationship.
+1
+
+Likes
+This table stores information about which users like which tweets.
+• like_id: SERIAL PRIMARY KEY, a unique identifier for each like.
+• user_id: INTEGER NOT NULL, a reference to the user who liked the tweet.
+• tweet_id: INTEGER NOT NULL, a reference to the liked tweet.
+• liked_at:
+TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the like occurred.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their likes.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its likes.
+Comments
+This table stores comments on tweets.
+• comment_id: SERIAL PRIMARY KEY, a unique identifier for each com-
+ment.
+• tweet_id: INTEGER NOT NULL, a reference to the tweet being commented
+on.
+• user_id: INTEGER NOT NULL, a reference to the user who made the com-
+ment.
+• content: TEXT NOT NULL, the content of the comment.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the comment was created.
+• FOREIGN KEY (tweet_id):
+REFERENCES Tweets(tweet_id) ON
+DELETE CASCADE, ensures that deleting a tweet also deletes its comments.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their comments.
+2
+
+ PostgreSQL Database Schema Documentation
+Tables
+Users
+This table stores user information.
+• user_id: SERIAL PRIMARY KEY, a unique identifier for each user.
+• username: VARCHAR(50) NOT NULL UNIQUE, the user’s unique username.
+• email: VARCHAR(100) NOT NULL UNIQUE, the user’s unique email address.
+• password_hash: VARCHAR(100) NOT NULL, a hashed representation of
+the user’s password.
+• bio: TEXT, a short biography or description of the user.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the user was created.
+Tweets
+This table stores tweets posted by users.
+• tweet_id: SERIAL PRIMARY KEY, a unique identifier for each tweet.
+• user_id: INTEGER NOT NULL, a reference to the user who posted the
+tweet.
+• content: TEXT NOT NULL, the content of the tweet.
+• created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the tweet was created.
+• FOREIGN
+KEY
+(user_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a user also deletes their tweets.
+Follows
+This table stores information about which users follow other users.
+• follower_id: INTEGER NOT NULL, the user who is following another user.
+• followee_id: INTEGER NOT NULL, the user who is being followed.
+• followed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP, the timestamp
+when the follow action occurred.
+• PRIMARY KEY (follower_id, followee_id): ensures unique follower-
+followee pairs.
+• FOREIGN KEY (follower_id):
+REFERENCES Users(user_id) ON
+DELETE CASCADE, ensures that deleting a follower user deletes the follow
+relationsh
+            ","```sql
+SELECT t.content
+FROM Tweets t
+JOIN Likes l ON t.tweet_id = l.tweet_id
+JOIN Users u ON l.user_id = u.user_id
+WHERE u.user_id IN (
+    SELECT f.follower_id
+    FROM Follows f
+    JOIN Users u2 ON f.followee_id = u2.user_id
+    WHERE u2.username = 'alice'
+);
+```",83,SELECT DISTINCT t.content FROM Tweets t JOIN Likes l ON t.tweet_id = l.tweet_id JOIN Follows f ON l.user_id = f.follower_id WHERE f.followee_id = (SELECT user_id FROM Users WHERE username = 'alice');,70,0

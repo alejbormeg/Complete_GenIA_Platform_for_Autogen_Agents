@@ -1,0 +1,58 @@
+query_description,expected_sql,generated_sql,similarity,result_coincidence
+Retrieve all users with their email addresses,"SELECT username, email FROM Users;","SELECT username, email
+FROM Users;",97,1
+List all tweets with their authors,"SELECT t.content, u.username FROM Tweets t JOIN Users u ON t.user_id = u.user_id;","SELECT t.tweet_id, t.content, u.username
+FROM Tweets t
+JOIN Users u ON t.user_id = u.user_id;",91,0
+Find who user 'alice' is following,SELECT u2.username FROM Users u1 JOIN Follows f ON u1.user_id = f.follower_id JOIN Users u2 ON f.followee_id = u2.user_id WHERE u1.username = 'alice';,"SELECT u.username AS followee
+FROM Follows f
+JOIN Users u ON f.followee_id = u.user_id
+WHERE f.follower_id = (SELECT user_id FROM Users WHERE username = 'alice');",68,1
+Count the number of followers for each user,"SELECT u.username, COUNT(f.follower_id) AS followers_count FROM Users u LEFT JOIN Follows f ON u.user_id = f.followee_id GROUP BY u.user_id;","SELECT followee_id AS user_id, COUNT(follower_id) AS follower_count
+FROM Follows
+GROUP BY followee_id;",63,0
+Retrieve all tweets and their respective like counts,"SELECT t.content, COUNT(l.like_id) AS like_count FROM Tweets t LEFT JOIN Likes l ON t.tweet_id = l.tweet_id GROUP BY t.tweet_id;","SELECT 
+    t.tweet_id, 
+    t.content, 
+    COUNT(l.like_id) AS like_count
+FROM 
+    Tweets t
+LEFT JOIN 
+    Likes l ON t.tweet_id = l.tweet_id
+GROUP BY 
+    t.tweet_id, t.content;",81,0
+Find all comments for a specific tweet,"SELECT c.content, u.username FROM Comments c JOIN Users u ON c.user_id = u.user_id WHERE c.tweet_id = 1;","SELECT comment_id, user_id, content, created_at
+FROM Comments
+WHERE tweet_id = ?;",56,0
+List users who liked tweets posted by 'alice',SELECT DISTINCT u.username FROM Likes l JOIN Tweets t ON l.tweet_id = t.tweet_id JOIN Users u ON l.user_id = u.user_id WHERE t.user_id = (SELECT user_id FROM Users WHERE username = 'alice');,"SELECT DISTINCT u2.user_id, u2.username
+FROM Likes l
+JOIN Tweets t ON l.tweet_id = t.tweet_id
+JOIN Users u1 ON t.user_id = u1.user_id
+JOIN Users u2 ON l.user_id = u2.user_id
+WHERE u1.username = 'alice';
+Terminate",79,0
+Find the tweet with the most comments,"SELECT t.content, COUNT(c.comment_id) AS comments_count FROM Tweets t LEFT JOIN Comments c ON t.tweet_id = c.tweet_id GROUP BY t.tweet_id ORDER BY comments_count DESC LIMIT 1;","SELECT
+    t.tweet_id,
+    t.content,
+    COUNT(c.comment_id) AS comment_count
+FROM
+    tweets t
+LEFT JOIN
+    comments c ON t.tweet_id = c.tweet_id
+GROUP BY
+    t.tweet_id, t.content
+ORDER BY
+    comment_count DESC
+LIMIT
+    1;
+Terminate",81,0
+Retrieve users who have never posted a tweet,SELECT u.username FROM Users u LEFT JOIN Tweets t ON u.user_id = t.user_id WHERE t.tweet_id IS NULL;,"SELECT u.user_id, u.username, u.email
+FROM Users u
+LEFT JOIN Tweets t ON u.user_id = t.user_id
+WHERE t.tweet_id IS NULL;",89,0
+List tweets liked by users who follow 'alice',SELECT DISTINCT t.content FROM Tweets t JOIN Likes l ON t.tweet_id = l.tweet_id JOIN Follows f ON l.user_id = f.follower_id WHERE f.followee_id = (SELECT user_id FROM Users WHERE username = 'alice');,"SELECT t.tweet_id, t.content
+FROM Likes l
+JOIN Followers f ON l.user_id = f.follower_id
+JOIN Tweets t ON l.tweet_id = t.tweet_id
+JOIN Users u ON u.user_id = f.followee_id
+WHERE u.username = 'alice';",61,0
