@@ -6,9 +6,9 @@ import pandas as pd
 import re
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz
-from src.utils.files_utils import read_text_from_pdf
-from src.utils.embedding_utils import chunk_spacy, chunk_nltk, chunk_fixed, create_embedding
-from src.utils.database_utils import execute_query, retrieve_related_vectors, store_vectors, delete_all_vectors
+from utils.files_utils import read_text_from_pdf
+from utils.embedding_utils import chunk_spacy, chunk_nltk, chunk_fixed, create_embedding
+from utils.database_utils import execute_query, retrieve_related_vectors, store_vectors, delete_all_vectors
 from typing import List
 
 # Load env variables
@@ -38,7 +38,7 @@ embedding_models = {
 def run_experiment(query_descriptions: List[str], queries: List[str], expected_sqls: List[str], chunk_size: int, chunk_strategy: str, embedding_model: str):
     remote_server_uri = "http://localhost"
     mlflow.set_tracking_uri(remote_server_uri)
-    mlflow.set_experiment("Chunk-strategy")
+    mlflow.set_experiment("NaturalLanguage2SQL")
     system_prompt = (
         "You are an AI assistant specialized in translating natural language questions into SQL queries."
         " Given a description of the data and a natural language question, generate the corresponding SQL query."
@@ -51,7 +51,9 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
     mlflow.log_param("embedding_model", embedding_model)
 
     total_similarity = 0
-    gpt_model = "gpt-3.5-turbo"
+    # gpt_model = "gpt-3.5-turbo"
+    gpt_model = "gpt-4o"
+
     top_k = 3
 
     # Log the model with OpenAI
@@ -112,15 +114,22 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
 
     # Initialize total similarity
     total_similarity = 0
+    total_accuracy = 0
 
     # Add a new column to the DataFrame for similarity
-    eval_table["expected_query"] = ""
+    eval_table["query_description"] = ""
+    eval_table["expected_sql"] = ""
+    eval_table["generated_sql"] = ""
+    eval_table["expected_result"] = ""
+    eval_table["generated_result"] = ""
     eval_table["similarity"] = 0
     eval_table["result_coincidence"] = 0
+
     # Extracting generated SQL from the evaluation results
     for index, row in eval_table.iterrows():
         generated_output = row["outputs"]
-        
+        description = query_descriptions[index]
+
         # Extract SQL part using regex
         match = re.search(r'`sql(.*?)`', generated_output, re.DOTALL)
         if match:
@@ -140,17 +149,48 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
         # Compare results
         result_coincidence = 1 if expected_result == generated_result else 0
         
+        if not result_coincidence:
+            prompt = f"""
+                Given the following query description: {description}.
+                Two SQL queries were provided:
+                - Expected SQL: {expected_sql}
+                - Generated SQL: {generated_sql}
+
+                Can we find the information of expected result in generated result ? No matters if we find extra info in generated_result
+                - Expected Result:\n{str(expected_result)}
+                - Generated Result:\n{str(generated_result)}
+                """
+
+            gpt_response = openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert SQL analyst. Just respond 'yes' or 'no'"},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+
+            # Check if GPT-4 considers them similar in meaning
+            gpt_result = gpt_response.choices[0].message.content
+            result_coincidence = 1 if "yes" in gpt_result.lower() else 0
+
         # Store the similarity and result coincidence in the DataFrame
-        eval_table.at[index, "expected_query"] = expected_sql
+        eval_table.at[index, "query_description"] = description
+        eval_table.at[index, "expected_sql"] = expected_sql
+        eval_table.at[index, "generated_sql"] = generated_sql
+        eval_table.at[index, "expected_result"] = expected_result
+        eval_table.at[index, "generated_result"] = generated_result
         eval_table.at[index, "similarity"] = similarity
         eval_table.at[index, "result_coincidence"] = result_coincidence
 
+        total_accuracy += result_coincidence
+
     # Calculate average similarity if needed
     average_similarity = total_similarity / len(eval_table) if len(eval_table) > 0 else 0
+    average_accuracy = total_accuracy /  len(eval_table) if len(eval_table) > 0 else 0
 
     # Log the average similarity metric
     mlflow.log_metric("average_similarity", average_similarity)
-
+    mlflow.log_metric("average_accuracy", average_accuracy)
     # Log the DataFrame as an artifact
     eval_table.to_csv("evaluation_results.csv", index=False)
     mlflow.log_artifact("evaluation_results.csv")

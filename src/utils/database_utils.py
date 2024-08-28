@@ -30,7 +30,7 @@ def execute_query(query: str, database: str):
         return result
     except Exception as e:
         print(f"Error executing query: {e}")
-        return None
+        return "Error"
     finally:
         if conn:
             conn.close()
