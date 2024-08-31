@@ -17,7 +17,7 @@ logger = logging.getLogger()
 # Initialize Ray and Serve
 os.environ['RAY_ADDRESS'] = "ray://localhost:10001"
 ray.init(runtime_env={"py_modules": [utils, agents]})
-serve.start()
+serve.start(detached=True, http_options={"host": "0.0.0.0"})
 
 runtime_env = {
     "conda": "src/utils/conda_environments/conda.yaml"

@@ -49,6 +49,7 @@ services:
             - "5432:5432"
         networks:
             - backend
+            - common_network
         environment:
             - MUID=$UID
             - MGID=$GID
@@ -104,6 +105,7 @@ services:
             - frontend
             - storage
             - backend
+            - common_network
         depends_on:
             - web
             - minio
@@ -115,6 +117,8 @@ networks:
         driver: bridge
     storage:
         driver: bridge
+    common_network:
+        external: true
 
 volumes:
     db_datapg:

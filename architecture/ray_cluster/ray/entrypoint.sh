@@ -1,5 +1,16 @@
 #!/bin/bash
 
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export OPENAI_API_KEY="your_openai_api_key"
+export POSTGRESQL_HOST="postgres_container"
+export POSTGRESQL_PORT=5432
+export POSTGRESQL_DATABASE="vector_db"
+export POSTGRESQL_USER="alex"
+export POSTGRESQL_PASSWORD="alexPostgresPassword"
+export GPT_MODEL='gpt-4o'
+export GPT_EMBEDDING_ENGINE='text-embedding-3-large'
+
 # Function to install Miniconda
 install_miniconda() {
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3-latest-Linux-x86_64.sh
@@ -14,8 +25,27 @@ setup_conda_env() {
     conda create -y -n ray_env python=3.10
     source $HOME/miniconda/etc/profile.d/conda.sh
     conda activate ray_env
-    pip install ray==2.31.0
-    pip install ray[serve] fastapi requests
+    pip install ray[serve]==2.31.0 
+    pip install fastapi requests
+    pip install mlflow==2.14.2
+    pip install psycopg2==2.9.5
+    pip install pytest==8.2.2
+    pip install pyzmq==26.0.3
+    pip install python-dotenv==1.0.1
+    pip install fuzzywuzzy==0.18.0 
+    pip install python-Levenshtein==0.25.1
+    pip install nltk==3.8.1
+    pip install openai==1.35.10
+    pip install spacy==3.7.5
+    pip install tiktoken==0.7.0
+    pip install tenacity==8.5.0
+    pip install PyMuPDF==1.24.7
+    pip install pyautogen==0.2.32
+    pip install chromadb==0.5.4
+    pip install markdownify==0.13.1
+    pip install pypdf==4.3.0
+    pip install gradio==4.38.1
+    pip install IPython
 }
 
 # Function to install Prometheus and Grafana

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  front:
+    build: .
+    ports:
+      - "7860:7860"
+    environment:
+      - export GRADIO_SERVER_NAME=0.0.0.0
+      - POSTGRESQL_HOST=postgres_container
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_DATABASE=vector_db
+      - POSTGRESQL_USER=alex
+      - POSTGRESQL_PASSWORD=alexPostgresPassword
+    volumes:
+      - .:/app
+    networks:
+      - common_network
+
+networks:
+  common_network:
+    external: true

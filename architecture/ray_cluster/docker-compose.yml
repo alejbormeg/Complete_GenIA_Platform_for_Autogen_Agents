@@ -5,22 +5,19 @@ services:
     build: ./ray
     container_name: ray-head
     ports:
-      - "8265:8265"   # Ray dashboard
-      - "3000:3000"   # Custom port
-      - "10001:10001" # Custom port
-      - "8000:8000"   # Custom port
-      - "6379:6379"   # Redis default port
-      - "6380:6380"   # Redis default port
-      - "6381:6381"   # Redis default port
-      - "12345:12345" # Ray gRPC port (head node)
-      - "12346:12346" # Ray gRPC port (worker node)
-      - "8001:8001"   # Custom port
-      - "8076:8076"   # Custom port
+      - "3000:3000"
+      - "6379:6379"
+      - "6380:6380"
+      - "8265:8265"
+      - "10001:10001"
+      - "50051:50051"
+      - "8000-8999:8000-8999"
     command: ["head"]
     shm_size: '8g'
     environment:
       - RAY_HEAD_IP=ray-head
       - RAY_DISABLE_DOCKER_CPU_WARNING=1
+      - RAY_HEAD_SERVICE_HOST=0.0.0.0
     volumes:
       - ray_data:/root/ray
     logging:
@@ -37,7 +34,13 @@ services:
         reservations:
           cpus: '1.0'
           memory: '4g'
+    networks:
+          - common_network
 
 volumes:
   ray_data:
     driver: local
+
+networks:
+  common_network:
+    external: true

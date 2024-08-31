@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Backend URL for API endpoints
-backend_url = "http://localhost:8000/api"
+backend_url = "http://ray-head:8000/api"
 
 # Function to extract column names from an SQL query
 def extract_column_names(query):
@@ -141,4 +141,4 @@ with gr.Blocks() as demo:
                 refresh_button_task.click(refresh_dropdown, [], outputs=[db_dropdown_task])
 
 # Launch the application
-demo.launch()
+demo.launch(server_name="0.0.0.0", server_port=7860)
