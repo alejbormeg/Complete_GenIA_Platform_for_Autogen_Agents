@@ -21,7 +21,7 @@ En este trabajo de fin de máster, se ha diseñado y evaluado una plataforma de 
 
 La rápida evolución de la inteligencia artificial (IA) y el surgimiento de la generación de IA han revolucionado numerosos sectores, facilitando el desarrollo de soluciones innovadoras y cada vez más sofisticadas. A lo largo del Máster en Big Data, Data Science & Inteligencia Artificial en la Universidad Complutense de Madrid, se adquirieron conocimientos avanzados en inteligencia artificial, manejo de grandes volúmenes de datos, y programación en Python. Uno de los campos más prometedores es el desarrollo de agentes autónomos que realizan tareas complejas de manera independiente. 
 
-El progreso en modelos de lenguaje avanzados, especialmente los desarrollados por OpenAI, ha abierto nuevas vías para sistemas interactivos en lenguaje natural. A pesar de sus ventajas, un reto persistente es la integración eficaz de estos modelos sin necesidad de reentrenamiento constante, utilizando enfoques como la Generación Aumentada por Recuperación (RAG). Este trabajo de fin de máster responde a la necesidad de aplicar estos conocimientos prácticamente, mediante la creación de una plataforma de IA operativa y aplicable en un contexto productivo.
+El progreso en modelos de lenguaje avanzados, especialmente los desarrollados por OpenAI, ha abierto nuevas vías para sistemas interactivos en lenguaje natural. A pesar de sus ventajas, un reto persistente es la integración eficaz de estos modelos sin necesidad de reentrenamiento constante, utilizando enfoques como "Retrieval Augmented Generation" (RAG). Este trabajo de fin de máster responde a la necesidad de aplicar estos conocimientos prácticamente, mediante la creación de una plataforma de IA operativa y aplicable en un contexto productivo.
 
 El objetivo es diseñar y desarrollar una plataforma de IA independiente de servicios en la nube, basada en contenedores y máquinas virtuales para un entorno local. Esta infraestructura facilitará el despliegue eficiente de soluciones de IA y se aplicará específicamente a la traducción de lenguaje natural a SQL (NL2SQL) mediante agentes expertos, optimizando así la precisión y eficiencia del sistema mediante la tecnología RAG.
 
@@ -32,7 +32,7 @@ Este trabajo de fin de máster tiene como metas:
 - **Desarrollar una plataforma de IA funcional y completa:** Construir una arquitectura modular y escalable que permita el despliegue de soluciones de IA en un entorno local, independiente de proveedores de nube.
 - **Implementar técnicas de Generación Aumentada por Recuperación (RAG):** Utilizar modelos avanzados de OpenAI para mejorar la gestión del conocimiento y la eficacia en la generación de respuestas sin necesidad de reentrenamiento constante.
 - **Desarrollar un sistema de agentes expertos en NL2SQL:** Crear un sistema interactivo que permita a los usuarios formular consultas SQL a través de instrucciones en lenguaje natural, usando agentes autónomos que mejoren la precisión y relevancia de las respuestas.
-- **Validar y probar el sistema:** Evaluar exhaustivamente el rendimiento de la plataforma para garantizar su capacidad de manejar cargas de trabajo en producción y adaptarse a distintos escenarios de uso.
+- **Diseñar una aplicación para usar el sistema implementado:** Finalmente, se pretende desarrollar una interfaz gráfica para poder interacturar con los agentes así como incorporar nuevos datos a la base de datos vectorial usada para el RAG.
 
 ## 2. Revisión del Estado del Arte
 
@@ -42,38 +42,39 @@ En esta sección se realiza una revisión exhaustiva del estado del arte en tres
 
 #### MLOps y Plataformas de Machine Learning
 
-En 2024, el campo de MLOps (Machine Learning Operations) continúa evolucionando rápidamente, consolidándose como una práctica esencial para gestionar de manera eficiente todo el ciclo de vida de los modelos de Machine Learning (ML). MLOps se refiere a la combinación de prácticas de DevOps con el desarrollo de modelos de ML, con el objetivo de automatizar y optimizar cada etapa del ciclo de vida de los modelos. Esto incluye desde la preparación y gestión de datos, hasta el entrenamiento, despliegue, monitoreo y mantenimiento continuo de los modelos en producción.
+El campo de MLOps (Machine Learning Operations) continúa evolucionando rápidamente, consolidándose como una práctica esencial para gestionar de manera eficiente todo el ciclo de vida de los modelos de Machine Learning (ML). MLOps se refiere a la combinación de prácticas de DevOps con el desarrollo de modelos de ML, con el objetivo de automatizar y optimizar cada etapa del ciclo de vida de los modelos. Esto incluye desde la preparación y gestión de datos, hasta el entrenamiento, despliegue, monitoreo y mantenimiento continuo de los modelos en producción.
 
 Un ejemplo representativo de este avance es el trabajo sobre las distintas etapas de MLOps presentado en [MLOps stages](https://mlops-for-all.github.io/en/docs/introduction/levels/), que detalla las fases que un proyecto de ML debe atravesar para integrar MLOps de manera efectiva. Este enfoque permite desarrollar plataformas integrales que no solo facilitan la creación de modelos de ML, sino que también aseguran su correcto funcionamiento en entornos productivos, garantizando así su sostenibilidad y escalabilidad a lo largo del tiempo.
 
 Entre las plataformas más destacadas que implementan estas prácticas se encuentran Databricks, Hugging Face, y Weights & Biases, las cuales ofrecen soluciones robustas para gestionar cada aspecto del ciclo de vida de los modelos de ML, desde la ingestión de datos hasta su monitoreo en producción.
 
+1. **Databricks**: Esta plataforma destaca por su integración unificada de la gestión de datos y activos de IA, lo que mejora significativamente la gobernanza y el monitoreo de modelos de ML. Su catálogo Unity Catalog, junto con las mejoras en Model Serving, facilitan la implementación de modelos en tiempo real y garantizan un monitoreo eficiente y continuo ([Databricks, 2024](https://www.databricks.com/blog/big-book-mlops-updated-generative-ai)).
 
-1. **Databricks**: Esta plataforma destaca por su integración unificada de la gestión de datos y activos de IA, lo que mejora significativamente la gobernanza y el monitoreo de modelos de ML. Su catálogo Unity Catalog, junto con las mejoras en Model Serving, facilitan la implementación de modelos en tiempo real y garantizan un monitoreo eficiente y continuo ([Databricks](https://www.databricks.com/blog/big-book-mlops-updated-generative-ai)).
+2. **Hugging Face**: Se ha posicionado como una plataforma esencial en el ámbito del procesamiento del lenguaje natural (NLP), ofreciendo herramientas avanzadas para el entrenamiento, ajuste fino y evaluación de modelos. Además, permite compartir modelos y conjuntos de datos con la comunidad, promoviendo la colaboración en proyectos de ML ([Hugging Face, 2024](https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024)).
 
-2. **Hugging Face**: Se ha posicionado como una plataforma esencial en el ámbito del procesamiento del lenguaje natural (NLP), ofreciendo herramientas avanzadas para el entrenamiento, ajuste fino y evaluación de modelos. Además, permite compartir modelos y conjuntos de datos con la comunidad, promoviendo la colaboración en proyectos de ML ([Hugging Face](https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024)).
+3. **Weights & Biases**: Evolucionó de ser una plataforma para el seguimiento de experimentos a una solución completa de MLOps, con funcionalidades para la automatización de flujos de trabajo, optimización de hiperparámetros y despliegue de aplicaciones de IA ([Weights & Biases, 2024](https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024), [Saturn Cloud, 2024](https://saturncloud.io/blog/2024-guide-to-mlops-platforms-tools/)).
 
-3. **Weights & Biases**: Evolucionó de ser una plataforma para el seguimiento de experimentos a una solución completa de MLOps, con funcionalidades para la automatización de flujos de trabajo, optimización de hiperparámetros y despliegue de aplicaciones de IA ([Weights & Biases](https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024), [Saturn Cloud](https://saturncloud.io/blog/2024-guide-to-mlops-platforms-tools/)).
+4. **MLflow**: MLflow es una plataforma de código abierto diseñada para gestionar el ciclo de vida de los modelos de Machine Learning. Ofrece herramientas para el seguimiento de experimentos, la gestión de modelos, el empaquetado de código y la implementación de modelos. Es ampliamente utilizado en la comunidad de ML por su versatilidad y su capacidad para integrarse con diferentes herramientas y plataformas, lo que permite un manejo más eficiente de los experimentos y modelos a lo largo de su ciclo de vida ([MLflow, 2024](https://mlflow.org/)).
+
+5. **Ray**: Ray es un marco de trabajo flexible y de alto rendimiento para la computación distribuida, diseñado para acelerar la ejecución de aplicaciones de IA y ML a gran escala. Ray permite ejecutar tareas paralelas y distribuidas de manera eficiente, lo que lo convierte en una opción ideal para entrenar modelos de ML que requieren grandes volúmenes de datos y recursos computacionales. Además, Ray se integra bien con otras plataformas de MLOps, lo que facilita la escalabilidad y el monitoreo en entornos de producción ([Ray, 2024](https://www.ray.io/)).
 
 El desarrollo de MLOps ha dado lugar a la adopción de LLMOps, una extensión de MLOps centrada en modelos de lenguaje a gran escala (LLMs), especialmente relevante dada la creciente popularidad de los modelos generativos. La integración de estos modelos en plataformas como Databricks facilita su gestión y escalabilidad en entornos empresariales complejos.
 
-En este trabajo se intentará construir una plataforma sin usar ningún proveedor cloud, que pueda ser desplegada en un entorno *on-premise*.
+En este trabajo se intentará construir una plataforma que cumpla con el *Stage 0* del artículo [MLOps stages](https://mlops-for-all.github.io/en/docs/introduction/levels/) sin usar ningún proveedor cloud, que pueda ser desplegada en un entorno *on-premise* en la que usaremos **Ray cluster** y **Mlflow**.
 
 #### Diseño de Agentes de IA
 
-El diseño de agentes de inteligencia artificial en 2024 está altamente influenciado por los avances en modelos generativos y de lenguaje, particularmente los grandes modelos de lenguaje (LLMs) [Wu et al., 2024](#wu2024). Estos agentes ahora pueden interactuar de manera más natural y contextual con los usuarios. Empresas como **OpenAI** y **Google** han incorporado estas capacidades en sus plataformas, permitiendo la creación de agentes que no solo responden a consultas, sino que también pueden ejecutar tareas complejas basadas en texto, como programación o análisis de datos [Wang et al., 2024](#wang2024). Soluciones como **AutoGen** [Wu et al., 2024](#wu2024), **OpenDevin** [Wang et al., 2024](#wang2024), **LlamaIndex** [Liu, 2022](#liu2022), y **LangChain** [Chase, 2022](#chase2022) son representativas de esta tendencia.
+El diseño de agentes de inteligencia artificial en 2024 está altamente influenciado por los avances en modelos generativos y de lenguaje, particularmente los grandes modelos de lenguaje (LLMs) ([Wu et al., 2024](#wu2024)). Estos agentes ahora pueden interactuar de manera más natural y contextual con los usuarios. Empresas como **OpenAI** y **Google** han incorporado estas capacidades en sus plataformas, permitiendo la creación de agentes que no solo responden a consultas, sino que también pueden ejecutar tareas complejas basadas en texto, como programación o análisis de datos ([Wang et al., 2024](#wang2024)). Soluciones como **AutoGen** ([Wu et al., 2024](#wu2024)), **OpenDevin** ([Wang et al., 2024](#wang2024)), **LlamaIndex** ([Liu, 2022](#liu2022)), y **LangChain** ([Chase, 2022](#chase2022)) son representativas de esta tendencia.
 
 Los agentes de IA modernos también mejoran en su integración con herramientas de desarrollo de software, permitiendo su participación en flujos de trabajo de DevOps, CI/CD y MLOps, lo que asegura una implementación y mantenimiento más efectivos de soluciones de IA.
+
+Para este trabajo emplearemos el framework **Autogen**.
 
 #### Resolución de la Tarea NL2SQL
 
 La tarea de NL2SQL, que convierte consultas en lenguaje natural a SQL, ha avanzado significativamente gracias a la mejora en los modelos de lenguaje y las técnicas de transferencia de aprendizaje. Los modelos como **Transformers** se han mostrado extremadamente efectivos para comprender y mapear el lenguaje natural a SQL. Plataformas como **Hugging Face** ofrecen modelos preentrenados que pueden ser adaptados para tareas específicas de NL2SQL, facilitando su implementación en aplicaciones empresariales.
 
-Además, la integración de técnicas de MLOps ha permitido que estos modelos sean entrenados, desplegados y monitoreados de manera continua, optimizando su rendimiento en entornos de producción ([neptune.ai](https://neptune.ai/blog/mlops-tools-platforms-landscape)).
-
-### Conclusión
-
-El panorama en 2024 para MLOps, agentes de IA y NL2SQL es vibrante y en expansión. Las plataformas están cada vez más integradas, lo que permite un flujo de trabajo más eficiente desde el desarrollo hasta el despliegue y monitoreo de modelos. Los avances en modelos de lenguaje están impulsando la creación de agentes de IA más sofisticados, mientras que las soluciones de NL2SQL siguen mejorando en precisión y facilidad de uso, respaldadas por tecnologías avanzadas y prácticas de MLOps.
+Además, la integración de técnicas de MLOps ha permitido que estos modelos sean entrenados, desplegados y monitoreados de manera continua, optimizando su rendimiento en entornos de producción ([neptune.ai, 2024](https://neptune.ai/blog/mlops-tools-platforms-landscape)). En nuestro caso intentaremos adaptar *Mlflow* y *Ray Cluster* para este propósito pese a no tener explícitamente implementadas herramientas para agentes en sus respectivas versiones más recientes, tratando de simular una compañia que trabaja con estas herramientas y pretende incorporar agentes.
 
 ## 3. Arquitectura de la Plataforma
 ### 3.1. Visión General de la Plataforma
@@ -84,15 +85,18 @@ La plataforma está construida sobre tecnologías de contenedorización y virtua
 
 Los componentes principales incluyen **Minio** para el almacenamiento de artefactos, **PostgreSQL** y **PGAdmin** para la gestión de bases de datos, **MLflow** para el registro y seguimiento de modelos, y **Ray Cluster** para la distribución y despliegue de tareas. Estos elementos están integrados en una red de Docker, que asegura el aislamiento y persistencia de datos, mientras que **Nginx** actúa como un proxy inverso para gestionar las solicitudes de manera segura y eficiente. Cada uno de estos componentes corre en un contenedor propio y para levantar la plataforma completa usamos *Docker Compose*.
 
-El diseño de esta plataforma se ha realizado siguiendo el arículo de Google [MLOps: Continuous Delivery and Automation Pipelines in Machine Learning](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning?hl=es-419). En el cual se presenta la siguiente arquitectura para el Stage 0 de un sistema de Machine Learning:
+El diseño de esta plataforma se ha realizado siguiendo el arículo de Google [MLOps: Continuous Delivery and Automation Pipelines in Machine Learning](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning?hl=es-419). En el cual se presenta la siguiente arquitectura para el Stage 0 de un sistema de Machine Learning adaptado a nuestro problema concreto:
 
-![MLOPS](./imgs/mlops_level_0.png)
+![MLOPS](./imgs/stage_0.png)
 
 Este primer stage se caracteriza por la presencia aún de fases manuales para el tratamiento de datos, experimentación y selección de modelo ganador, pero incluye la presencia de un *Model Registry* para registrar los modelos usados, los datasets empleados y los resultados obtenidos con dichos modelos de forma que mantenemos una traza reproducible que nos permite replicar los procesos de entrenamiento y experimentación así como compartir de forma sencilla los modelos ganadores, algo que hoy en día sigue siendo tedioso para los Científicos de datos que continúan en muchas ocasiones compartiendo las carpetas comprimidas con los pesos de los modelos y se corre el riesgo de no conocer exactamente qué versión del modelo se está desplegando. En nuestra Arquitectura, el papel de *Model Registry* lo realizará **Mlflow**, que nos permite registrar entrenamientos y resultados de validación de los modelos que probemos y almacenar todos estos resultados como artefactos en la base de datos **Minio**, también emplea **PostgreSQL** como backend store. 
 
 Por otro lado, en el contexto del Stage 0 de ML, utilizaremos Ray Cluster como la solución de Model Serving. Ray es un framework de código abierto que permite ejecutar y escalar modelos de Machine Learning de manera distribuida y eficiente. Internamente, Ray utiliza FastAPI para exponer los servicios y gestiona las unidades de trabajo denominadas "actores" que explicaremos a continuación.
 
 ### 3.2. Descripción de Componentes Clave
+
+A continuación se procede a describir los componentes clave de esta arquitectura, aunque los detalles de cómo se ha construido la plataforma cómo se levanta se pueden encontrar en el repositorio que contiene todo el código del proyecto en[Github](https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents).
+
 #### 3.2.1. Minio para Almacenamiento de Artefactos
 
 Minio es una solución de almacenamiento de objetos compatible con S3 que se utiliza en esta plataforma para gestionar los artefactos generados durante el ciclo de vida de los modelos de IA. Este componente es crucial para almacenar de manera segura y escalable los modelos entrenados, los datos de entrenamiento, y otros artefactos relevantes.
@@ -111,13 +115,13 @@ Además, PostgreSQL se potencia con la extensión **PgVector**, que permite alma
 
 MLflow es un componente central de la plataforma que permite el seguimiento, registro y gestión de los modelos de IA. Este componente facilita el ciclo de vida completo del modelo, desde el entrenamiento hasta el despliegue, permitiendo un control exhaustivo sobre las versiones de los modelos y los experimentos realizados.
 
-Dentro de la plataforma, MLflow se configura como un **Tracking Server** para utilizar **Minio** como su backend de almacenamiento de artefactos y **PostgreSQL** como su backend de metadatos. Esto asegura que todos los datos relacionados con los experimentos y los modelos estén centralizados y accesibles para su análisis y auditoría. MLflow también proporciona una interfaz web para la visualización de los experimentos y el estado de los modelos, lo que facilita la colaboración y la toma de decisiones. Más detalles sobre esto en el anexo sobre Mlflow.
+Dentro de la plataforma, MLflow se configura como un **Tracking Server** para utilizar **Minio** como su backend de almacenamiento de artefactos y **PostgreSQL** como su backend de metadatos. Esto asegura que todos los datos relacionados con los experimentos y los modelos estén centralizados y accesibles para su análisis y despliegue. MLflow también proporciona una interfaz web para la visualización de los experimentos y el estado de los modelos, lo que facilita la colaboración y la toma de decisiones. Más detalles sobre esto en el anexo sobre [Mlflow](#mlflow).
 
 #### 3.2.4. Ray Cluster para Despliegue de Modelos y Distribución de Tareas
 
 Ray es un marco de trabajo distribuido diseñado para la ejecución de aplicaciones de inteligencia artificial a gran escala. En esta plataforma, **Ray Cluster** se utiliza para coordinar y distribuir tareas entre los diferentes agentes del sistema NL2SQL, abarcando tanto el despliegue de modelos como la ejecución de tareas de procesamiento en paralelo, lo que optimiza el uso de los recursos disponibles.
 
-La integración de Ray con la plataforma se realiza mediante contenedores Docker, lo que facilita su escalabilidad y permite agregar nodos al clúster a medida que aumenta la demanda. Además, Ray se conecta con herramientas como Prometheus y Grafana para el monitoreo en tiempo real de su rendimiento, lo que ayuda a detectar cuellos de botella y ajustar la configuración según las necesidades del sistema. véase más en detalle en el anexo sobre Ray cluster
+La integración de Ray con la plataforma se realiza mediante contenedores Docker, lo que facilita su escalabilidad y permite agregar nodos al clúster a medida que aumenta la demanda. Además, Ray se conecta con herramientas como Prometheus y Grafana para el monitoreo en tiempo real de su rendimiento, lo que ayuda a detectar cuellos de botella y ajustar la configuración según las necesidades del sistema. véase más en detalle en el anexo sobre [Ray](#ray-cluster)
 
 
 ### 3.3. Redes y Volúmenes en Docker: Aislamiento y Persistencia
@@ -126,13 +130,7 @@ Uno de los aspectos fundamentales de la arquitectura es el uso de redes y volúm
 
 Los volúmenes de Docker se emplean para garantizar que los datos críticos, como los almacenados en PostgreSQL o Minio, se mantengan persistentes incluso si los contenedores se reinician. Esto no solo asegura la integridad de los datos, sino que también facilita las operaciones de backup y recuperación.
 
-### 3.4. Nginx como Proxy Inverso: Gestión de Solicitudes y Seguridad
-
-Nginx se utiliza como proxy inverso en la plataforma para gestionar y dirigir las solicitudes entrantes a los servicios adecuados. Este componente es clave para asegurar que las comunicaciones entre los distintos servicios y los usuarios finales se realicen de manera segura y eficiente.
-
-Además, Nginx permite la implementación de medidas de seguridad adicionales, como la autenticación de usuarios, la protección contra ataques DDoS, y la gestión de certificados SSL para comunicaciones encriptadas. Al actuar como punto central de entrada, Nginx también facilita el balanceo de carga y la optimización del tráfico hacia los servicios más demandados.
-
-### 3.5. Gestión de Versiones de Modelos
+### 3.4. Gestión de Versiones de Modelos
 
 La gestión de versiones de modelos es manejada principalmente por MLflow, que permite rastrear cada versión de un modelo junto con sus metadatos, artefactos y resultados de pruebas. Esto asegura que cualquier versión de un modelo pueda ser restaurada y desplegada nuevamente si fuera necesario, facilitando el mantenimiento y la mejora continua de la plataforma.
 
@@ -169,7 +167,7 @@ Al aplicar la Técnica de RAG en este sistema de agentes, logramos que las consu
 
 ### 4.1. Diseño del Sistema de Agentes
 
-El sistema de agentes NL2SQL desarrollado para esta plataforma se basa en la implementación de múltiples agentes colaborativos, cada uno con roles y responsabilidades específicos, que trabajan en conjunto para traducir consultas en lenguaje natural a SQL. Estos agentes utilizan el modelo GPT-4o para aprovechar sus avanzadas capacidades de procesamiento de lenguaje natural, lo que les permite realizar tareas complejas de manera eficiente y con un alto grado de precisión. El diseño se ha realizado con el framework *Autogen*, para más información ver los anexos.
+El sistema de agentes NL2SQL desarrollado para esta plataforma se basa en la implementación de múltiples agentes colaborativos, cada uno con roles y responsabilidades específicos, que trabajan en conjunto para traducir consultas en lenguaje natural a SQL. Estos agentes utilizan el modelo GPT-4o para aprovechar sus avanzadas capacidades de procesamiento de lenguaje natural, lo que les permite realizar tareas complejas de manera eficiente y con un alto grado de precisión. El diseño se ha realizado con el framework [Autogen].
 
 ### 4.2. Descripción de los Agentes
 
@@ -214,20 +212,13 @@ El sistema se compone de varios servicios desplegados como "deployments" en Ray 
 
 **APIGateway**: Este servicio actúa como un punto de entrada centralizado para todas las solicitudes HTTP que interactúan con los diferentes servicios. Dependiendo del tipo de solicitud, dirige la petición al servicio correspondiente, asegurando que cada tarea sea manejada por el agente o proceso adecuado.
 
-#### 4.4.2. Flujo de Trabajo y Coordinación
-El flujo de trabajo típico dentro de este sistema es el siguiente:
+En la siguiente imagen podemos ver todos los componentes desplegados en el entorno de **Ray**:
 
-**Recepción de la Solicitud del Usuario**: El APIGateway recibe una solicitud del usuario a través de una API HTTP. Esta solicitud puede ser para iniciar una conversación con los agentes, insertar vectores en la base de datos, generar embeddings, o ejecutar una consulta SQL.
+![Endpoints desplegados con Ray Serve](./imgs/ray_deployments.png)
 
-**Transformación y Procesamiento de Texto**: Si la solicitud requiere la generación de embeddings (por ejemplo, cuando se sube un documento pdf con la descripción de una base de datos), el APIGateway delega la tarea al servicio Text2Vectors. Este servicio, a su vez, utiliza los servicios ChunkStrategy y EmbeddingEndpoints para dividir el texto y generar los embeddings.
+De esta forma, todas las peticiones se envían al **APIGateway**, que en función del contenido de la petición la redirecciona utilizando las *compositions* de Ray al *deployment* que se encarga de procesarla.
 
-**Almacenamiento de Embeddings**: Los embeddings generados pueden ser almacenados en la base de datos PostgreSQL utilizando el servicio PGVectorConnection. Este servicio inserta los vectores en la tabla correspondiente, lo que permite que posteriormente sean utilizados para la recuperación de información relevante.
-
-**Interacción con los Agentes**: Para consultas NL2SQL, el RAGChatEndpoint gestiona la interacción entre los diferentes agentes, comenzando con el User Proxy Agent que inicia la conversación y canaliza la consulta al Planner Agent. Este agente determina la intención del usuario y, si es necesario, invoca al Document Retrieval Agent para recuperar información adicional. Posteriormente, la consulta es procesada por el NL to SQL Agent, que genera la consulta SQL final. El Feedback Loop Agent revisa el resultado y proporciona retroalimentación para mejorar futuras interacciones.
-
-**Respuesta al Usuario**: Finalmente, la respuesta generada por los agentes es enviada de vuelta al usuario a través del APIGateway.
-
-#### 4.4.3. Escalabilidad y Gestión de Carga
+#### 4.4.2. Escalabilidad y Gestión de Carga
 
 La escalabilidad vertical está garantizada por el framework **Ray Cluster** como hemos visto en puntos anteriores, y la escalabilidad horizontal por el uso de **Docker**. Que permite levantar todos los Nodos **Workers** de Ray dentro del cluster que se necesiten.
 
@@ -237,27 +228,29 @@ Para asegurar el óptimo desempeño del sistema, se llevan a cabo pruebas de ren
 
 En resumen, este sistema de agentes NL2SQL es un ejemplo robusto y escalable de cómo las tecnologías de inteligencia artificial, como GPT-4o y Ray, pueden ser utilizadas para crear soluciones prácticas y eficientes para la traducción de lenguaje natural a SQL. Cada agente desempeña un rol crucial en este ecosistema, asegurando que el usuario reciba respuestas precisas y oportunas a sus consultas.
 
+En la siguiente imagen vemos algunas gráficas sobre el uso de CPU y memoria de los componentes desplegados gracias a **Prometheus** y **Grafana**:
+
+![Gráficas de uso de memoria y CPU en Ray por los distintos componentes desplegados](./imgs/graficas_ray.png)
 
 ## 5. Pruebas y Validación
 
 En esta sección se describe el proceso de experimentación realizado para seleccionar el mejor modelo de *embeddings* de OpenAI para nuestro problema de NL2SQL así como el mejor modelo de *OpenAI* para la tarea de traducción de *NL2SQL*. Utilizando **MLflow**, hemos registrado, evaluado y validado los resultados de los experimentos, asegurando que la plataforma sea capaz de generar consultas SQL precisas a partir de descripciones en lenguaje natural.
 
 
-El enfoque de experimentación se basa en un script que ejecuta múltiples pruebas utilizando diferentes estrategias de segmentación de texto y modelos de *embeddings* así como la posterior tarea de *NL2SQL*. Para la elección del modelo se ha utilizado una base de datos ficticia llamada *Social Network* que simula una base de datos de una red social en la que tenemos *Usuarios*, *Comentarios*, *Tweets* y relaciones entre los elementos como usuarios que siguen a otros usuarios, likes en comentarios, etc. Los detalles de la base de datos y su creación pueden encontrarse en los anexos, junto con las preguntas usadas en validación y sus respectivas sentencias SQL.
+El enfoque de experimentación se basa en un script que ejecuta múltiples pruebas utilizando diferentes estrategias de segmentación de texto y modelos de *embeddings* así como la posterior tarea de *NL2SQL*. Para la elección del modelo se ha utilizado una base de datos ficticia llamada *Social Network* de diseño propio para la prueba y datos irreales, que simula una base de datos de una red social en la que tenemos *Usuarios*, *Comentarios*, *Tweets* y relaciones entre los elementos como usuarios que siguen a otros usuarios, likes en comentarios, etc. Los detalles de la base de datos y su creación pueden encontrarse en los anexos, junto con las preguntas usadas en validación y sus respectivas sentencias SQL. Todos los detalles sobre la creación de la base de datos y su estructura pueden consultarse en el repositorio de [GitHub](https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents).
 
-
-A continuación, se resume el flujo de trabajo (más información en los anexos):
+A continuación, se resume el flujo de trabajo:
 
 1. **Cargar y Preparar el Entorno**: Se inicializa el entorno cargando las variables necesarias para la conexión con Mlflow y configurando la API de OpenAI. Además, se cargan las 10 consultas de evaluación de un archivo JSON externo.
 
 2. **Definir Estrategias y Modelos**: Se configuran varias estrategias de segmentación (fixed, nltk, spacy) y se seleccionan tres candidatos a modelos de *embeddings* de OpenAI: `text-embedding-3-small`, `text-embedding-3-large` y `text-embedding-ada-002`. Los modelos a evaluar como encargados de la tarea de *NL2SQL* fueron *GPT-3.5-Turbo* y *GPT-4o*. 
 
-3. **Ejecución de Experimentos**: Para cada combinación de estrategia de segmentación, tamaño de fragmento y modelo de *embeddings*, se ejecuta un experimento que incluye:
+3. **Ejecución de Experimentos**: Para cada combinación de estrategia de segmentación, tamaño de fragmento, modelo de *embeddings* y modelo para *NL2SQL*, se ejecuta un experimento que incluye:
    - **Segmentación del Texto**: El texto del documento PDF se segmenta utilizando la estrategia seleccionada.
-   - **Creación de Embeddings**: Se generan *embeddings* para cada fragmento de texto segmentado.
+   - **Creación de Embeddings**: Se generan *embeddings* para cada fragmento de texto segmentado con el modelo de embeddings seleccionado.
    - **Almacenamiento y Recuperación de Vectores**: Los *embeddings* generados se almacenan en una base de datos PostgreSQL con la extensión PGVector, y posteriormente se recuperan vectores relacionados para cada consulta.
-   - **Generación de Consultas SQL**: Utilizando el modelo de lenguaje GPT-3.5-turbo o GPT-4o, se generan consultas SQL basadas en la descripción de la consulta y los textos relacionados recuperados.
-   - **Evaluación de Resultados**: Se compara la consulta SQL generada con la esperada, calculando la similitud utilizando la métrica FuzzyWuzzy con un rango de 0-100 y verificando la coincidencia de resultados al ejecutar ambas consultas en la base de datos. Para verificar la coincidencia se realiza una consulta a GPT-4o dándole el rol de experto en SQL y el contexto necesario para que decida si el resultado obtenido por ambas consultas (la generada y la esperada) en esencia son la misma y la única diferencia es que hay información adicional poco relevante en alguna de ellas.
+   - **Generación de Consultas SQL**: Utilizando el modelo de *NL2SQL*, se generan consultas SQL basadas en la descripción de la consulta y los textos relacionados recuperados.
+   - **Evaluación de Resultados**: Se compara la consulta SQL generada con la esperada, calculando la similitud utilizando la métrica FuzzyWuzzy con un rango de 0-100 y verificando la coincidencia de resultados al ejecutar ambas consultas en la base de datos. Para verificar la coincidencia se realiza una consulta a GPT-4o dándole el role de experto en SQL y el contexto necesario para que decida si el resultado obtenido por ambas consultas (la generada y la esperada) en esencia son la misma y la única diferencia es que hay información adicional poco relevante en alguna de ellas.
 
 4. **Registro y Validación con MLflow**: 
    - **Parámetros y Resultados**: Se registran todos los parámetros utilizados en cada experimento, así como los resultados obtenidos, como la similitud promedio y el *accuracy* promedio entre las consultas generadas y las esperadas.
@@ -298,7 +291,7 @@ Los resultados obtenidos son los siguientes:
 
 ![Resultados con chat de agentes](./imgs/tablas_agentes_mlflow.png)
 
-Como vemos hay un nuevo *Run* que supera en Accuracy y mantiene la similaridad a los que se habían probado hasta ahora, que es el del framework de agentes. No obstante las verdaderas mejoras, además del rendimiento vienen en la robustez y capacidad de adaptarse a preguntas poco precisas del ususario (gracias al planner) así como corregir posibles errores de sintaxis de antemano (gracias al feedback_loop), así como poder seguir la traza de cómo se resuelve el problema por parte de la IA en caso de no entender bien el resultado proporcionado.
+Como vemos hay un nuevo *Run* que supera en Accuracy (llegando a un 0.9) y mantiene la similaridad a los que se habían probado hasta ahora, que es el del framework de agentes. No obstante las verdaderas mejoras, además del rendimiento vienen en la robustez y capacidad de adaptarse a preguntas poco precisas del ususario (gracias al planner) así como corregir posibles errores de sintaxis de antemano (gracias al feedback_loop), así como poder seguir la traza de cómo se resuelve el problema por parte de la IA en caso de no entender bien el resultado proporcionado.
 
 ## 6. Interfaz de Usuario
 
@@ -340,21 +333,7 @@ También pueden indicar el nombre de la base de datos para incluirla como *metad
 
 **Conversation History**: Esta sección muestra el historial completo de la conversación entre los agentes, incluyendo todos los mensajes que cada agente ha enviado para la petición del ususario. El cuadro de texto es amplio y tiene la capacidad de desplazarse, lo que permite a los usuarios revisar toda la conversación de manera continua.
 
-Pueden consultarse más detalles técnicos de la implementación en los anexos.
-
-### 6.2 Flujo de Trabajo
-
-El flujo de trabajo típico del usuario en esta interfaz es el siguiente:
-
-**Cargar un Documento**: El usuario selecciona y carga un archivo PDF o DOC que describe la base de datos que desea consultar.
-
-**Escribir una Consulta**: El usuario ingresa una consulta en lenguaje natural que desea convertir a SQL.
-
-**Procesar la Consulta**: El usuario presiona el botón "Process", y el sistema procesa la consulta, generando una respuesta en SQL que se muestra en el campo de salida.
-
-**Revisar el Historial**: El usuario puede revisar todo el historial de interacción en el cuadro de conversación, lo que facilita el seguimiento continuo de las consultas y respuestas.
-
-**Ejecución de sentencias SQL**: El usuario puede probar las sentencias devueltas por los agentes contra la base de datos deseada.
+Pueden consultarse más detalles técnicos de la implementación consultar el repositorio de [GitHub](https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents). En el anexo [Detalles de la interfaz de usuario](#detalles-de-la-interfaz-de-usuario) se puede ver un ejemplo de chat de agentes en la interfaz así como el resto de funcionalidades.
 
 
 ## 7. Conclusiones
@@ -390,21 +369,58 @@ Para superar las limitaciones mencionadas y expandir las capacidades de la plata
 En conclusión, este TFM ha establecido un sólido punto de partida para la creación de plataformas independientes de IA que no solo mejoran la precisión y eficiencia en tareas específicas como NL2SQL, sino que también ofrecen un marco escalable y adaptable para futuras innovaciones en el campo de la inteligencia artificial.
 
 
+\newpage
+
 ## Bibliography
 
 - <a name="wu2024"></a>Wu, Q., Bansal, G., Zhang, J., Wu, Y., Li, B., Zhu, E., et al. (2024). *AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework*. COLM.
 - <a name="wang2024"></a>Wang, X., Li, B., Song, Y., Xu, F. F., Tang, X., Zhuge, M., et al. (2024). *OpenDevin: An Open Platform for AI Software Developers as Generalist Agents*. arXiv. Available at: [https://arxiv.org/abs/2407.16741](https://arxiv.org/abs/2407.16741)
 - <a name="liu2022"></a>Liu, J. (2022). *LlamaIndex*. GitHub. Available at: [https://github.com/jerryjliu/llama_index](https://github.com/jerryjliu/llama_index)
 - <a name="chase2022"></a>Chase, H. (2022). *LangChain*. GitHub. Available at: [https://github.com/langchain-ai/langchain](https://github.com/langchain-ai/langchain)
+- MLOps stages. (n.d.). *MLOps for All*. Available at: [https://mlops-for-all.github.io/en/docs/introduction/levels/](https://mlops-for-all.github.io/en/docs/introduction/levels/)
+- Databricks. (2024). *Big Book of MLOps: Updated with Generative AI*. Available at: [https://www.databricks.com/blog/big-book-mlops-updated-generative-ai](https://www.databricks.com/blog/big-book-mlops-updated-generative-ai)
+- *7 End-to-End MLOps Platforms You Must Try in 2024*. KDnuggets. Available at: [https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024](https://www.kdnuggets.com/7-end-to-end-mlops-platforms-you-must-try-in-2024)
+- *2024 Guide to MLOps Platforms & Tools*. Saturn Cloud. Available at: [https://saturncloud.io/blog/2024-guide-to-mlops-platforms-tools/](https://saturncloud.io/blog/2024-guide-to-mlops-platforms-tools/)
+- *MLOps Tools & Platforms Landscape*. neptune.ai. Available at: [https://neptune.ai/blog/mlops-tools-platforms-landscape](https://neptune.ai/blog/mlops-tools-platforms-landscape)
+- MLflow. (2024). MLflow: An Open-Source Platform for the Machine Learning Lifecycle. Available at: [https://mlflow.org/](https://mlflow.org/)
+- Ray. (2024). Ray: A High-Performance Distributed Execution Framework. Available at: [https://www.ray.io/](https://www.ray.io/)
 
-
+\newpage
 
 ## Anexos
 
 
 ### Mlflow
 
-MLflow Tracking Server se puede configurar con un proxy HTTP para los artefactos, lo que permite pasar las solicitudes de artefactos a través del servidor de seguimiento para almacenar y recuperar artefactos sin necesidad de interactuar directamente con los servicios de almacenamiento de objetos subyacentes:
+#### Introducción a MLflow
+
+MLflow es una plataforma de código abierto diseñada para gestionar todo el ciclo de vida del aprendizaje automático (ML). Proporciona un conjunto de herramientas que abordan los desafíos comunes que enfrentan los equipos de data science y desarrollo cuando trabajan con proyectos de ML, como el seguimiento de experimentos, la administración de modelos y el despliegue en producción.
+
+MLflow se compone de cuatro componentes principales:
+
+1. **MLflow Tracking**: Permite a los usuarios registrar y rastrear parámetros, métricas y artefactos asociados con experimentos de ML. Los datos se almacenan en un servidor centralizado que puede consultarse para comparar diferentes ejecuciones de modelos.
+
+2. **MLflow Projects**: Estandariza el formato de los proyectos de ML, permitiendo que los experimentos sean replicables y fáciles de ejecutar en diferentes entornos. Los proyectos pueden ser empaquetados con dependencias específicas y ejecutados en cualquier entorno compatible.
+
+3. **MLflow Models**: Proporciona un formato estandarizado para empaquetar modelos que puede ser entendido por varias herramientas y frameworks, facilitando la transición de los modelos desde la experimentación hasta la producción.
+
+4. **MLflow Registry**: Ofrece un sistema centralizado para gestionar la evolución de los modelos, incluyendo la versionado, la etapa de desarrollo (staging/production) y anotaciones, lo que facilita la colaboración entre equipos.
+
+#### Conceptos Básicos de MLflow
+
+- **Experimentos y Ejecuciones**: Un experimento en MLflow agrupa un conjunto de ejecuciones de modelos que están relacionados entre sí. Cada ejecución guarda información sobre los parámetros utilizados, las métricas obtenidas y los artefactos generados, como modelos o archivos de salida.
+
+- **Artefactos**: Son los archivos generados durante una ejecución, que pueden incluir modelos entrenados, gráficos de resultados, archivos de datos, entre otros. Estos artefactos pueden almacenarse localmente o en un servicio de almacenamiento en la nube.
+
+- **Parámetros y Métricas**: Los parámetros son los valores utilizados para configurar una ejecución de un modelo, como la tasa de aprendizaje o el número de árboles en un modelo de bosque aleatorio. Las métricas son los resultados obtenidos de la ejecución, como la precisión del modelo o el error cuadrático medio.
+
+#### Principal Potencial de MLflow
+
+El principal potencial de MLflow radica en su capacidad para simplificar y estandarizar el proceso de desarrollo de modelos de ML, lo que permite a los equipos trabajar de manera más eficiente y colaborativa. Al centralizar el seguimiento de experimentos, la gestión de modelos y el despliegue, MLflow facilita la reproducción de resultados, el mantenimiento de registros precisos y la integración continua en el ciclo de vida del aprendizaje automático. Además, su capacidad para integrarse con múltiples frameworks y plataformas hace que sea una herramienta versátil, adecuada para una amplia variedad de aplicaciones en el campo del ML.
+
+#### Mlflow en nuestro proyecto
+
+En el presente trabajo Mlflow se ha configurado como lo denominado *Tracking Server*, con un proxy HTTP para los artefactos, lo que permite pasar las solicitudes de artefactos a través del servidor de seguimiento para almacenar y recuperar artefactos sin necesidad de interactuar directamente con los servicios de almacenamiento de objetos subyacentes:
 
 ![Mlflow tracking server](./imgs/mlflow_tracking_server.png)
 
@@ -416,7 +432,36 @@ Los beneficios de utilizar MLflow Tracking Server para el seguimiento remoto de 
   
 - **Acceso Centralizado**: El servidor de seguimiento puede funcionar como un proxy para el acceso remoto a metadatos y artefactos, lo que facilita la seguridad y la auditoría del acceso a los datos.
 
+Todos los contenedores que componen el *Model Registry* de Mlflow se levantan con *docker-compose*, como puede verse en la imagen:
+
+![Contenedores que componen Mlflow, con Minio, PostgreSQL, PgAdmin y Nginx como proxy inverso](./imgs/mlflow_dockers.png)
+
+La interfaz de Mlflow se expone en el puerto *80*, accesible desde localhost como puede verse en la imagen:
+
+![Mlflow página principal](./imgs/mlflow_main_page.png)
+
+En ella podemos ver los diferentes experimentos realizados y dentro de cada uno de ellos, las ejecuciones con los diferentes parámetros, modelos y técnicas de validación empleados durante el proceso de experimentación de este trabajo (descrito en el apartado 5), registrando también las métricas obtenidas en validación y el dataset empleado en validación.
+
+También dispone de un apartado *Modelos* en el cual, aquellas ejecuciones que cumplen con las métricas esperadas pueden registrarse como modelos y cargarse de forma sencilla en el servicio en que se vayan a desplegar asegurando así un correcto versionado de los modelos como puede ocurrir en ingeniería del software con el versionado de código.
+
+Para comparar los resultados de las distintas ejecuciones, en el apartado de *chart* y *evaluation* de los distintos experimentos configurados, se pueden realizar gráficos para comparar las distintas métricas obtenidas en evaluación para las distintas ejecuciones, además, la propia herramienta de Mlflow filtra los elementos mostrados en los gráficos seleccionando solo aquellos con mayor valor para dichas métricas, facilitando la tarea de selección de modelo:
+
+![Mlflow chart para métrica de similitud y correción en la tarea de NL2SQL](./imgs/mlflow_chart.png)
+
+![Mlflow evaluation nos permite ver las respuestas de los modelos ante las diferentes preguntas realizadas](./imgs/mlflow_evaluation.png)
+
+
+Finalmente, en el apartado de modelos, podemos registrar aquellas ejecuciones con mejores resultados y etiquetarlas con los *aliases* para saber qué versión de cada modelo está lista para el entorno de *producción* o está en el entorno de *testing* actualmente (suponiendo un marco empresarial en el cual se dan estas dos fases antes de desplegar un modelo).
+
+![Versionado de modelos y etiquetado en Mlflow](./imgs/mlflow_models_version.png)
+
+![Carga de modelos desde Mlflow](./imgs/mlflow_model_load.png)
+
+
 ### Ray Cluster
+
+A continuación presentamos los principales conceptos sobre Ray y su uso en el presente trabajo.
+
 #### Conceptos Clave de Ray
 
 - **Actores**: Son trabajadores con estado que operan de manera aislada dentro del clúster. Cada actor puede ejecutar métodos específicos y mantener un estado interno que persiste entre llamadas, lo que es ideal para servir modelos de Machine Learning. Los actores pueden gestionar modelos de forma independiente, ejecutar inferencias y mantener la carga de trabajo aislada. Además, pueden especificar sus necesidades de recursos, como CPU, GPU, u otros recursos personalizados, permitiendo a Ray distribuir eficientemente las tareas en función de la disponibilidad de recursos en el clúster.
@@ -424,8 +469,6 @@ Los beneficios de utilizar MLflow Tracking Server para el seguimiento remoto de 
 - **Tareas**: Ray soporta la ejecución asíncrona de funciones, denominadas "tareas", que pueden distribuirse y ejecutarse en paralelo en distintos nodos del clúster. Esto es esencial para manejar cargas de trabajo intensivas en datos o procesamiento. Al igual que los actores, las tareas pueden especificar los recursos que necesitan, optimizando su distribución y ejecución en un entorno distribuido.
 
 - **Objetos Remotos**: Las tareas y actores en Ray generan y manipulan objetos remotos, almacenados en una memoria compartida distribuida a lo largo del clúster. Esta memoria compartida facilita que los datos se mantengan accesibles y distribuidos eficientemente entre los nodos, lo que es crucial para el procesamiento paralelo y la escalabilidad del sistema.
-
-- **Grupos de Colocación (Placement Groups)**: Ray introduce los grupos de colocación para optimizar la ejecución de actores y tareas. Estos grupos permiten reservar recursos de forma atómica en múltiples nodos, configurándose para colocar las tareas y actores de manera contigua (PACK) o distribuida (SPREAD), según las necesidades de la carga de trabajo.
 
 - **Gestión de Entornos**: Ray facilita la gestión de dependencias de entorno en los nodos remotos, ya sea preparándolos previamente en el clúster o instalándolos dinámicamente a través de entornos de tiempo de ejecución. Esto permite que diferentes modelos con requerimientos distintos convivan en el mismo clúster sin conflictos.
 
@@ -435,6 +478,26 @@ Ray Cluster gestiona automáticamente la escalabilidad vertical de los nodos act
 
 Este enfoque modular y escalable, junto con la capacidad de gestionar entornos de conda de manera independiente en cada actor, convierte a Ray en una herramienta poderosa para desplegar y gestionar modelos de Machine Learning en producción, manteniendo un rendimiento óptimo y una gran flexibilidad.
 
+Para la observabilidad, Ray Cluster permite emplear *Prometheus* y *Grafana* para monitorear la plataforma y los recursos disponibles así como permite añadir gráficas personalizadas para detectar bajadas de rendimiento por parte de los modelos y servicios desplegados.
+
+#### Ray Cluster en nuestro proyecto
+
+En este proyecto hemos creado una imagen de *docker* que hemos desplegado con *docker-compose* en la cual hay un nodo *Head* (nodo principal orquestador) de un cluster de Ray y en el que hemos instalado también *prometheus* y *Grafana* para monitorización.
+
+El contenedor corriendo puede verse en la siguiente imagen:
+
+![Contenedor de Ray](./imgs/ray_docker.png)
+
+Si abrimos en nuestro navegador la ruta [localhost:8265/#/overview](http://localhost:8265/#/overview), podemos ver un estado general del cluster, con el uso de CPU, Disco y RAM en una gráfica generada por *grafana*, así como los *jobs* ejecutados recientemente (por ejemplo, para desplegar modelos) y en la parte de *Serve* los endpoints desplegados:
+
+![Ray Cluster Overview](./imgs/Ray_cluster.png)
+
+
+De todas las demás secciones destacan la sección de *Serve*, dónde podemos ver más detalles sobre los modelos y endpoints deplegados actualmente, en la ventana de *Cluster* podemos ver las hebras disponibles y la memoria RAM que usan (se procura que cada endpoint corra en una hebra distinta). Los actores disponibles y las métricas y ficheros de Logs tando de la plataforma en general como de cada servicio desplegado.
+
+![Ray Serve endpoints desplegados](./imgs/ray_serve.png)
+
+![Estado de los diferentes procesos corriendo en el cluster de Ray](./imgs/ray_cluster_status.png)
 
 ### Agentes implementados
 
@@ -493,13 +556,6 @@ Este enfoque modular y escalable, junto con la capacidad de gestionar entornos d
 
 **Configuración:** Este agente también opera de manera autónoma, ayudando a cerrar el ciclo de interacción con el usuario con una evaluación final de la consulta generada.
 
-### Autogen
-
-AutoGen es un framework desarrollado por Microsoft que facilita la creación y gestión de agentes autónomos mediante la generación automática de código y la orquestación de agentes. AutoGen permite definir flujos de trabajo entre agentes, coordinar sus interacciones, y manejar complejidades relacionadas con la gestión de estados y transiciones.
-
-AutoGen soporta la integración con modelos de lenguaje avanzados como los de OpenAI, lo que permite a los desarrolladores crear sistemas que combinen capacidades de recuperación de información y generación de lenguaje, esenciales para aplicaciones como NL2SQL. El framework proporciona herramientas para manejar la complejidad de la colaboración entre agentes, asegurando que las tareas se realicen de manera secuencial y coherente, lo que es fundamental para sistemas de IA distribuidos y basados en agentes.
-
-En este proyecto, AutoGen ha sido fundamental para el desarrollo del sistema de agentes NL2SQL, proporcionando una infraestructura sólida y flexible para la creación de un sistema modular y escalable que puede ser adaptado a múltiples casos de uso en la interpretación de lenguaje natural y la generación de consultas SQL.
 
 ### Base de datos empleada en la fase de experimentación
 
@@ -566,8 +622,23 @@ El fragmento de código para esto es el siguiente:
             result_coincidence = 1 if "yes" in gpt_result.lower() else 0
    ```
 
-### Implementación UI
+### Detalles de la interfaz de ususario
 
 La interfaz fue desarrollada utilizando el framework Gradio, lo que facilita la creación de interfaces web interactivas para aplicaciones de machine learning. La comunicación con el backend se realiza mediante solicitudes HTTP, enviando los documentos cargados y las consultas ingresadas a un servidor que ejecuta el procesamiento a través de agentes NL2SQL. La respuesta del backend se muestra en tiempo real, proporcionando una experiencia de usuario fluida e intuitiva para la generación y validación de consultas SQL a partir de lenguaje natural.
 
 Este diseño permite a los usuarios interactuar con el sistema de manera sencilla, ofreciendo una experiencia rica y efectiva para la generación y validación de consultas SQL a partir de lenguaje natural.
+
+![Ejemplo de chat de agentes](./imgs/UI_test.png)
+
+Se puede ver cómo el agente planner recupera el contexto con RAG y cómo el agente de Feedback proporciona mejoras a la consulta que se ha propuesto como primera opción, refinándola hasta devolver la correcta.
+
+También dispone la interfaz gráfica de una sección para ejecutar sentencias SQL contra la base de datos que estamos analizando, para poder probar las respuestas devueltas por los agentes, para ello podemos seleccionar de entre las bases de datos disponibles con el menú desplegable cuál será el objetivo de la query, finalmente ejecutamos con el botón *Execute Query*:
+
+![Interfaz para ejecutar sentencias SQl](./imgs/frontend_2.png)
+
+Finalmente tenemos la interfaz para subir documentos a nuestra base de datos vectorial en PostgreSQL, en ella por un lado elegimos el documento PDF a procesar y por otro lado seleccionamos el valor para el parámetro *database* de la tabla con vectores, este parámetro nos permite mejorar el RAG filtrando vectores por dicho parámetro:
+
+![Interfaz para subir documentos PDF](./imgs/frontend_1.png)
+
+
+Este servicio también se encuentra en un contenedor de *docker* en la misma red interna junto con los contenedores de Ray y PostgreSQL para la correcta comunicación entre ellos.
