@@ -20,7 +20,7 @@ The integration of Autogen and RAG within our platform represents a novel achiev
 
 This is the schema of the agents flow developed:
 
-[Agents flow](./imgs/NL2SQL_agents.png)
+![Agents flow](./imgs/NL2SQL_agents.png)
 
 ### Architecture Highlights 🏗️
 
