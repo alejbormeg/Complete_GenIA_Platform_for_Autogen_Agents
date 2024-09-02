@@ -34,7 +34,6 @@ embedding_models = {
     "text-embedding-ada-002": "text-embedding-ada-002"
 }
 
-# Main experiment function
 def run_experiment(query_descriptions: List[str], queries: List[str], expected_sqls: List[str], chunk_size: int, chunk_strategy: str, embedding_model: str):
     remote_server_uri = "http://localhost"
     mlflow.set_tracking_uri(remote_server_uri)
@@ -82,24 +81,19 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
     queries_df = pd.DataFrame({ "query_description": []})
 
     for i, (query_description, query, expected_sql) in enumerate(zip(query_descriptions, queries, expected_sqls)):
-        # Evaluate the model on some example questions
         query_embedding = create_embedding(query_description, embedding_model, chunk_size)
         related_vectors = retrieve_related_vectors(query_embedding, table, top_k=top_k)
 
-        # Extract the text attribute for the related vectors
         related_texts = [text for _, _, text in related_vectors]
 
-        # Create the description string
         description = f"""
             Based on the embeddings in {table}, generate the SQL query to answer: {query_description}.
             Please provide only the SQL code enclosed within ```sql...``` characters.
             Context: {' '.join(related_texts)}
             """
 
-        # Create a DataFrame for the new row
         new_row = pd.DataFrame({"query_description": [description]})
 
-        # Concatenate the new row to the DataFrame
         queries_df = pd.concat([queries_df, new_row], ignore_index=True)
 
     response = mlflow.evaluate(
@@ -188,9 +182,9 @@ def run_experiment(query_descriptions: List[str], queries: List[str], expected_s
     average_similarity = total_similarity / len(eval_table) if len(eval_table) > 0 else 0
     average_accuracy = total_accuracy /  len(eval_table) if len(eval_table) > 0 else 0
 
-    # Log the average similarity metric
     mlflow.log_metric("average_similarity", average_similarity)
     mlflow.log_metric("average_accuracy", average_accuracy)
+
     # Log the DataFrame as an artifact
     eval_table.to_csv("evaluation_results.csv", index=False)
     mlflow.log_artifact("evaluation_results.csv")

@@ -96,7 +96,6 @@ class EmbeddingEndpoints:
 
         return response
 
-# Initialize Ray and Serve
 os.environ['RAY_ADDRESS'] = "ray://localhost:10001"
 ray.init()
 serve.start()
@@ -107,7 +106,6 @@ runtime_env = {
 
 test2vectors_app = Text2Vectors.bind(ChunkStrategy.bind(), EmbeddingEndpoints.bind())
 app = PGVectorConnection.bind(test2vectors_app)
-# Use serve.run to deploy with the runtime environment
 serve.run(app, route_prefix="/text2vectors")
 
 print("Deployed Text2Vectors, ChunkStrategy, and EmbeddingEndpoints on the Ray cluster.")

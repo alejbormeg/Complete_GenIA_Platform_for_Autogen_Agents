@@ -22,8 +22,6 @@ def chunk_nltk(text: str) -> List[str]:
     return nltk.tokenize.sent_tokenize(text)
 
 def chunk_spacy(text: str) -> List[str]:
-    # Load spacy model
-    # Make sure you do: python -m spacy download en_core_web_sm
     nlp = spacy.load('en_core_web_sm')
     doc = nlp(text)
     return [sent.text for sent in doc.sents]

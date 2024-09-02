@@ -36,7 +36,6 @@ def execute_query(query: str, database: str):
             conn.close()
 
 def retrieve_related_vectors(query_embedding, table, top_k=3):
-    # Establish the database connection
     conn = psycopg2.connect(
         host=os.getenv("POSTGRESQL_HOST"),
         port=os.getenv("POSTGRESQL_PORT"),
@@ -46,7 +45,6 @@ def retrieve_related_vectors(query_embedding, table, top_k=3):
     )
     cursor = conn.cursor()
     
-    # Execute the SQL query to retrieve the most related vectors
     cursor.execute(f"""
         SELECT id, embedding, text
         FROM {table}
@@ -54,16 +52,13 @@ def retrieve_related_vectors(query_embedding, table, top_k=3):
         LIMIT {top_k};
     """, (query_embedding,))
     
-    # Fetch all related vectors
     related_vectors = cursor.fetchall()
     
-    # Close the cursor and connection
     cursor.close()
     conn.close()
     
     return related_vectors
 
-# Function to store vectors in PostgreSQL
 def store_vectors(vectors: List[Tuple[int, List[float], str]], table: str):
     conn = psycopg2.connect(
         host=os.getenv("POSTGRESQL_HOST"),
@@ -79,7 +74,6 @@ def store_vectors(vectors: List[Tuple[int, List[float], str]], table: str):
     finally:
         conn.close()
 
-# Function to delete all vectors from a table
 def delete_all_vectors(table: str):
     conn = psycopg2.connect(
         host=os.getenv("POSTGRESQL_HOST"),
