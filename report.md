@@ -4,6 +4,9 @@ subtitle: "Trabajo fin de Máster"
 author: "Alejandro Borrego Megías"
 date: "28/08/2024"
 documentclass: report
+header-includes:
+  - \usepackage{longtable}
+  - \usepackage{listings}
 ---
 
 \newpage
@@ -136,6 +139,9 @@ La gestión de versiones de modelos es manejada principalmente por MLflow, que p
 
 Este enfoque modular y escalable asegura que la plataforma no solo sea robusta y eficiente, sino también adaptable a nuevas tecnologías y casos de uso futuros, manteniendo un alto nivel de seguridad y control en un entorno on-premise.
 
+### 3.5 Testeo de la plataforma
+
+Además se ha includio un conjunto de test que comprueban una vez la arquitectura está funcionando que está correctamente levantada. Para más detalles sobre esto consultar el repositorio del proyecto en [GitHub](https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents).
 
 ## 4. Desarrollo del Sistema de Agentes NL2SQL
 
@@ -189,7 +195,7 @@ A continuación, se detallan las funciones y responsabilidades de cada agente.
 
 5. **Feedback Loop Agent:** Evalúa la calidad de la consulta SQL generada y proporciona retroalimentación para mejorar futuras interacciones, cerrando el ciclo de interacción de manera autónoma o reiniciándolo si es necesario.
 
-Para más detalles de la implementación de los agentes consultar los anexos.
+Para más detalles de la implementación de los [agentes](#agentes-implementados) consultar los anexos.
 
 ### 4.3. Implementación de la Infraestructura de Ray para la Coordinación de Agentes
 
@@ -389,6 +395,11 @@ En conclusión, este TFM ha establecido un sólido punto de partida para la crea
 
 ## Anexos
 
+### Código del proyecto
+
+Todo el código del proyecto se encuentra en el siguiente repositorio de GitHub: [https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents](https://github.com/alejbormeg/Complete_GenIA_Platform_for_Autogen_Agents).
+
+En él se encuentra también un README.md que contiene información relevante sobre cómo levantar todo el proyecto para que pueda ser reproducible.
 
 ### Mlflow
 
@@ -501,57 +512,74 @@ De todas las demás secciones destacan la sección de *Serve*, dónde podemos ve
 
 ### Agentes implementados
 
-#### 4.2.1. **User Proxy Agent**
+A continuación se detallan los agentes implementados para esta solución.
+
+#### **User Proxy Agent**
 
 **Rol:** Este agente actúa como el intermediario principal entre el usuario y el sistema. Es responsable de gestionar la interacción con el usuario, asegurando una comunicación fluida y eficiente.
 
 **Funcionalidad:**
+
 - **Gestión de Interacciones:** Este agente recibe las solicitudes del usuario y las redirige al agente o proceso adecuado dentro del sistema.
+
 - **Iniciación de Conversación:** Es el primer agente en activarse cuando se recibe una nueva tarea. Su objetivo es interpretar la solicitud inicial del usuario y dirigirla hacia el siguiente agente en la cadena de procesamiento.
+
 - **Finalización de Conversaciones:** Monitorea las respuestas para identificar cuándo la conversación debe concluir, basándose en señales específicas como la palabra "terminate".
 
 **Configuración:** Este agente está configurado para no requerir input humano adicional una vez que se inicia la interacción y no ejecuta código directamente. Su enfoque está en la gestión de las comunicaciones.
 
-#### 4.2.2. **Document Retrieval Agent (PgVectorRetrieveUserProxyAgent)**
+#### **Document Retrieval Agent (PgVectorRetrieveUserProxyAgent)**
 
 **Rol:** Este agente es responsable de buscar y recuperar información relevante de una base de datos vectorizada que puede ser útil para responder a las consultas del usuario.
 
 **Funcionalidad:**
+
 - **Recuperación Basada en Embeddings:** Utiliza un modelo de embeddings para convertir las consultas del usuario en representaciones vectoriales, que luego se comparan con los vectores almacenados en la base de datos PostgreSQL.
+
 - **Selección de Documentos:** Recupera los documentos más relevantes basándose en la similitud de vectores, lo que permite que las respuestas sean contextualmente precisas.
+
 - **Soporte a Otros Agentes:** Proporciona la información recuperada al Planner Agent, que luego la utiliza para refinar la interpretación de la consulta del usuario.
 
 **Configuración:** Este agente también está configurado para operar de manera autónoma, sin intervención humana, y no ejecuta código, centrando su operación en la búsqueda y recuperación de información.
 
-#### 4.2.3. **Planner Agent**
+#### **Planner Agent**
 
 **Rol:** Este agente es el encargado de analizar la consulta del usuario para comprender su intención y extraer la información clave que guiará los siguientes pasos en el proceso de conversión de NL a SQL.
 
 **Funcionalidad:**
+
 - **Comprensión del Lenguaje Natural:** Utiliza técnicas avanzadas de comprensión del lenguaje natural (NLU) para identificar la intención del usuario y desglosar la consulta en elementos esenciales.
+
 - **Planificación del Flujo:** Basado en la interpretación de la consulta, decide qué agentes deben activarse a continuación para completar la tarea.
+
 - **Clarificación de Consultas:** Si es necesario, puede desambiguar o solicitar más información para asegurar que la consulta SQL generada sea precisa y relevante.
 
 **Configuración:** Al igual que los otros agentes, opera de manera autónoma y sin necesidad de ejecutar código externo. Su principal función es la planificación y coordinación dentro del sistema.
 
-#### 4.2.4. **NL to SQL Agent**
+#### **NL to SQL Agent**
 
 **Rol:** Este agente tiene la función central en el sistema: transformar la consulta en lenguaje natural del usuario en una consulta SQL válida y optimizada.
 
 **Funcionalidad:**
+
 - **Conversión de Lenguaje Natural a SQL:** Analiza la intención del usuario y la estructura del esquema de la base de datos proporcionado para generar una consulta SQL que sea precisa y eficiente.
+
 - **Optimización:** Asegura que la consulta SQL no solo sea correcta, sino también optimizada para la estructura y los índices de la base de datos, lo que es crucial para el rendimiento en entornos de producción.
+
 - **Terminación de Tareas:** Una vez que genera la consulta SQL, el agente finaliza su tarea indicando la finalización con un mensaje de "Terminate", lo que permite al sistema cerrar el ciclo de interacción.
 
 **Configuración:** Este agente está diseñado para funcionar completamente de manera autónoma, sin requerir entrada humana o ejecución de código externo. Su enfoque es puramente en la traducción y optimización SQL.
 
-#### 4.2.5. **Feedback Loop Agent**
+#### **Feedback Loop Agent**
 
 **Rol:** El Feedback Loop Agent se encarga de evaluar la calidad de la consulta SQL generada y proporcionar retroalimentación para mejorar futuras interacciones.
 
 **Funcionalidad:**
+
 - **Evaluación de Consultas:** Revisa la consulta SQL generada para identificar posibles errores o áreas de mejora.
+
 - **Retroalimentación Activa:** Ofrece sugerencias o correcciones, que pueden ser utilizadas en futuras interacciones para mejorar la precisión y eficiencia de las traducciones.
+
 - **Cierre del Ciclo:** Si se detecta que la consulta generada es correcta, confirma el cierre de la conversación. De lo contrario, puede reiniciar el proceso para refinar la consulta.
 
 **Configuración:** Este agente también opera de manera autónoma, ayudando a cerrar el ciclo de interacción con el usuario con una evaluación final de la consulta generada.
@@ -559,37 +587,194 @@ De todas las demás secciones destacan la sección de *Serve*, dónde podemos ve
 
 ### Base de datos empleada en la fase de experimentación
 
-Para esta base de datos se han generado las siguientes 10 preguntas en lenguaje natural con su respectiva solución en lenguaje SQL para evaluar los modelos:
+#### Descripción de la Base de datos
 
-| Descripción en lenguaje Natural                                          | SQL                                                                                                                                                                                                 |
-|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Retrieve all users with their email addresses              | `SELECT username, email FROM Users;`                                                                                                                                                                     |
-| List all tweets with their authors                         | `SELECT t.content, u.username FROM Tweets t JOIN Users u ON t.user_id = u.user_id;`                                                                                                                      |
-| Find who user 'alice' is following                         | `SELECT u2.username FROM Users u1 JOIN Follows f ON u1.user_id = f.follower_id JOIN Users u2 ON f.followee_id = u2.user_id WHERE u1.username = 'alice';`                                                  |
-| Count the number of followers for each user                | `SELECT u.username, COUNT(f.follower_id) AS followers_count FROM Users u LEFT JOIN Follows f ON u.user_id = f.followee_id GROUP BY u.user_id;`                                                           |
-| Retrieve all tweets and their respective like counts       | `SELECT t.content, COUNT(l.like_id) AS like_count FROM Tweets t LEFT JOIN Likes l ON t.tweet_id = l.tweet_id GROUP BY t.tweet_id;`                                                                       |
-| Find all comments for the tweet 1                          | `SELECT c.content, u.username FROM Comments c JOIN Users u ON c.user_id = u.user_id WHERE c.tweet_id = 1;`                                                                                               |
-| List users who liked tweets posted by 'alice'              | `SELECT DISTINCT u.username FROM Likes l JOIN Tweets t ON l.tweet_id = t.tweet_id JOIN Users u ON l.user_id = u.user_id WHERE t.user_id = (SELECT user_id FROM Users WHERE username = 'alice');`         |
-| Find the tweet with the most comments                      | `SELECT t.content, COUNT(c.comment_id) AS comments_count FROM Tweets t LEFT JOIN Comments c ON t.tweet_id = c.tweet_id GROUP BY t.tweet_id ORDER BY comments_count DESC LIMIT 1;`                       |
-| Retrieve users who have never posted a tweet               | `SELECT u.username FROM Users u LEFT JOIN Tweets t ON u.user_id = t.user_id WHERE t.tweet_id IS NULL;`                                                                                                   |
-| List tweets liked by users who follow 'alice'              | `SELECT DISTINCT t.content FROM Tweets t JOIN Likes l ON t.tweet_id = l.tweet_id JOIN Follows f ON l.user_id = f.follower_id WHERE f.followee_id = (SELECT user_id FROM Users WHERE username = 'alice');` |
+La base de datos descrita es un esquema relacional que modela una red social similar a Twitter, donde los usuarios pueden crear cuentas, publicar tweets, seguir a otros usuarios, dar "me gusta" a tweets y comentar en ellos. A continuación, se describe detalladamente cada tabla y su función:
 
+##### Tablas Principales
+
+1. **Users**:
+   - **Propósito**: Esta tabla almacena la información de los usuarios de la red social.
+   - **Columnas**:
+     - `user_id`: Es la clave primaria de la tabla, de tipo `SERIAL`, lo que significa que es un valor autoincremental único para cada usuario.
+     - `username`: Un nombre de usuario de hasta 50 caracteres, que debe ser único y no nulo.
+     - `email`: Dirección de correo electrónico de hasta 100 caracteres, que también debe ser única y no nula.
+     - `password_hash`: Almacena un hash de la contraseña del usuario, de hasta 100 caracteres. No es nulo.
+     - `bio`: Un campo de texto opcional que permite al usuario proporcionar una breve biografía.
+     - `created_at`: Un campo `TIMESTAMP` que almacena la fecha y hora de creación del usuario, con un valor predeterminado de la hora actual (`CURRENT_TIMESTAMP`).
+
+2. **Tweets**:
+   - **Propósito**: Esta tabla almacena los tweets publicados por los usuarios.
+   - **Columnas**:
+     - `tweet_id`: Clave primaria, de tipo `SERIAL`.
+     - `user_id`: Un campo `INTEGER` que referencia al `user_id` de la tabla `Users`, indicando quién publicó el tweet. Es una clave externa con la restricción `ON DELETE CASCADE`, lo que significa que si el usuario se elimina, también se eliminarán sus tweets.
+     - `content`: Un campo de texto que almacena el contenido del tweet. Es obligatorio.
+     - `created_at`: Un campo `TIMESTAMP` que almacena la fecha y hora de publicación del tweet, con un valor predeterminado de `CURRENT_TIMESTAMP`.
+
+3. **Follows**:
+   - **Propósito**: Modela las relaciones de "seguir" entre usuarios, indicando quién sigue a quién.
+   - **Columnas**:
+     - `follower_id`: Un `INTEGER` que referencia al `user_id` de la tabla `Users`, representando al usuario que sigue a otro. Es una clave externa con la restricción `ON DELETE CASCADE`.
+     - `followee_id`: Un `INTEGER` que también referencia al `user_id` de la tabla `Users`, representando al usuario que es seguido. Es una clave externa con la misma restricción `ON DELETE CASCADE`.
+     - `followed_at`: Un campo `TIMESTAMP` que almacena la fecha y hora en que se inició el seguimiento, con un valor predeterminado de `CURRENT_TIMESTAMP`.
+   - **Clave primaria**: La clave primaria es compuesta por los campos `follower_id` y `followee_id`, lo que impide que un usuario siga al mismo usuario más de una vez.
+
+4. **Likes**:
+   - **Propósito**: Esta tabla registra los "me gusta" que los usuarios dan a los tweets.
+   - **Columnas**:
+     - `like_id`: Clave primaria, de tipo `SERIAL`.
+     - `user_id`: Un `INTEGER` que referencia al `user_id` de la tabla `Users`, indicando quién dio el "me gusta". Es una clave externa con la restricción `ON DELETE CASCADE`.
+     - `tweet_id`: Un `INTEGER` que referencia al `tweet_id` de la tabla `Tweets`, indicando a qué tweet se le dio "me gusta". Es una clave externa con la restricción `ON DELETE CASCADE`.
+     - `liked_at`: Un campo `TIMESTAMP` que almacena la fecha y hora en que se dio "me gusta", con un valor predeterminado de `CURRENT_TIMESTAMP`.
+
+5. **Comments**:
+   - **Propósito**: Almacena los comentarios que los usuarios hacen en los tweets.
+   - **Columnas**:
+     - `comment_id`: Clave primaria, de tipo `SERIAL`.
+     - `tweet_id`: Un `INTEGER` que referencia al `tweet_id` de la tabla `Tweets`, indicando a qué tweet pertenece el comentario. Es una clave externa con la restricción `ON DELETE CASCADE`.
+     - `user_id`: Un `INTEGER` que referencia al `user_id` de la tabla `Users`, indicando quién hizo el comentario. Es una clave externa con la restricción `ON DELETE CASCADE`.
+     - `content`: Un campo de texto que almacena el contenido del comentario. Es obligatorio.
+     - `created_at`: Un campo `TIMESTAMP` que almacena la fecha y hora de creación del comentario, con un valor predeterminado de `CURRENT_TIMESTAMP`.
+
+##### Datos
+
+También se han insertado algunos datos de ejemplo para poder conocer si las consultas se han realizado con éxito. Estos datos no son reales de usuarios y se han creado exclusivamente para este trabajo.
+
+#### Datos de evaluación
+
+Para esta base de datos se han generado las siguientes 10 preguntas en lenguaje natural con su respectiva solución en lenguaje SQL para evaluar los modelos que empleamos en la tarea de *NL2SQL*:
+
+
+\begin{longtable}{|p{6cm}|p{6cm}|}
+\hline
+\textbf{Descripción en lenguaje Natural} & \textbf{SQL} \\
+\hline
+Retrieve all users with their email addresses &
+\sloppy \texttt{SELECT username,} \\
+& \sloppy \texttt{email} \\
+& \sloppy \texttt{FROM Users;} \\
+\hline
+List all tweets with their authors &
+\sloppy \texttt{SELECT t.content,} \\
+& \sloppy \texttt{u.username} \\
+& \sloppy \texttt{FROM Tweets t} \\
+& \sloppy \texttt{JOIN Users u} \\
+& \sloppy \texttt{ON t.user\_id = u.user\_id;} \\
+\hline
+Find who user 'alice' is following &
+\sloppy \texttt{SELECT u2.username} \\
+& \sloppy \texttt{FROM Users u1} \\
+& \sloppy \texttt{JOIN Follows f} \\
+& \sloppy \texttt{ON u1.user\_id = f.follower\_id} \\
+& \sloppy \texttt{JOIN Users u2} \\
+& \sloppy \texttt{ON f.followee\_id = u2.user\_id} \\
+& \sloppy \texttt{WHERE u1.username =} \\
+& \sloppy \texttt{'alice';} \\
+\hline
+Count the number of followers for each user &
+\sloppy \texttt{SELECT u.username,} \\
+& \sloppy \texttt{COUNT(f.follower\_id)} \\
+& \sloppy \texttt{AS followers\_count} \\
+& \sloppy \texttt{FROM Users u} \\
+& \sloppy \texttt{LEFT JOIN Follows f} \\
+& \sloppy \texttt{ON u.user\_id = f.followee\_id} \\
+& \sloppy \texttt{GROUP BY u.user\_id;} \\
+\hline
+Retrieve all tweets and their respective like counts &
+\sloppy \texttt{SELECT t.content,} \\
+& \sloppy \texttt{COUNT(l.like\_id)} \\
+& \sloppy \texttt{AS like\_count} \\
+& \sloppy \texttt{FROM Tweets t} \\
+& \sloppy \texttt{LEFT JOIN Likes l} \\
+& \sloppy \texttt{ON t.tweet\_id = l.tweet\_id} \\
+& \sloppy \texttt{GROUP BY t.tweet\_id;} \\
+\hline
+Find all comments for the tweet 1 &
+\sloppy \texttt{SELECT c.content,} \\
+& \sloppy \texttt{u.username} \\
+& \sloppy \texttt{FROM Comments c} \\
+& \sloppy \texttt{JOIN Users u} \\
+& \sloppy \texttt{ON c.user\_id = u.user\_id} \\
+& \sloppy \texttt{WHERE c.tweet\_id = 1;} \\
+\hline
+List users who liked tweets posted by 'alice' &
+\sloppy \texttt{SELECT DISTINCT} \\
+& \sloppy \texttt{u.username} \\
+& \sloppy \texttt{FROM Likes l} \\
+& \sloppy \texttt{JOIN Tweets t} \\
+& \sloppy \texttt{ON l.tweet\_id = t.tweet\_id} \\
+& \sloppy \texttt{JOIN Users u} \\
+& \sloppy \texttt{ON l.user\_id = u.user\_id} \\
+& \sloppy \texttt{WHERE t.user\_id =} \\
+& \sloppy \texttt{(SELECT user\_id FROM} \\
+& \sloppy \texttt{Users WHERE} \\
+& \sloppy \texttt{username = 'alice');} \\
+\hline
+Find the tweet with the most comments &
+\sloppy \texttt{SELECT t.content,} \\
+& \sloppy \texttt{COUNT(c.comment\_id)} \\
+& \sloppy \texttt{AS comments\_count} \\
+& \sloppy \texttt{FROM Tweets t} \\
+& \sloppy \texttt{LEFT JOIN Comments c} \\
+& \sloppy \texttt{ON t.tweet\_id = c.tweet\_id} \\
+& \sloppy \texttt{GROUP BY t.tweet\_id} \\
+& \sloppy \texttt{ORDER BY comments\_count} \\
+& \sloppy \texttt{DESC LIMIT 1;} \\
+\hline
+Retrieve users who have never posted a tweet &
+\sloppy \texttt{SELECT u.username} \\
+& \sloppy \texttt{FROM Users u} \\
+& \sloppy \texttt{LEFT JOIN Tweets t} \\
+& \sloppy \texttt{ON u.user\_id = t.user\_id} \\
+& \sloppy \texttt{WHERE t.tweet\_id IS} \\
+& \sloppy \texttt{NULL;} \\
+\hline
+List tweets liked by users who follow 'alice' &
+\sloppy \texttt{SELECT DISTINCT} \\
+& \sloppy \texttt{t.content} \\
+& \sloppy \texttt{FROM Tweets t} \\
+& \sloppy \texttt{JOIN Likes l} \\
+& \sloppy \texttt{ON t.tweet\_id = l.tweet\_id} \\
+& \sloppy \texttt{JOIN Follows f} \\
+& \sloppy \texttt{ON l.user\_id = f.follower\_id} \\
+& \sloppy \texttt{WHERE f.followee\_id =} \\
+& \sloppy \texttt{(SELECT user\_id FROM} \\
+& \sloppy \texttt{Users WHERE} \\
+& \sloppy \texttt{username = 'alice');} \\
+\hline
+\end{longtable}
+
+Estas sentencias han sido especialmente pensadas y diseñadas empezando por una consulta sencilla y gradualmente añadir complejidad a las *queries* incluyendo *Joins*, filtros complejos y relaciones entre varias tablas de la base de datos. Esto proporciona un conjunto adecuado para validar los modelos durante la fase de experimentación.
 
 ### Fase de experimentación detallada
 
-Usamos el siguiente system message:
+#### Experimentación para elección de modelos y técnicas de embeddings
+
+Como se explica en el apartado de [Pruebas y Validación](#5-pruebas-y-validación), se realiza un experimento en el cual se prueban distintos modelos de embeddings ofrecidos por OpenAI así como los modelos GPT-4o y GPT-3.5-Turbo para la tarea de NL2SQL.
+
+Para los GPT encargados de NL2SQl usamos el siguiente system message:
 
 ```
-You are an AI assistant specialized in translating natural language questions into SQL queries. Given a description of the data and a natural language question, generate the corresponding SQL query.
+You are an AI assistant specialized in translating 
+natural language questions into SQL queries. 
+Given a description of the data and a natural language question, 
+generate the corresponding SQL query.
 ```
 
-Posteriormente, en el prompt se le envía el contexto obtenido con la técnica RAG para la consulta a analizar y se le pide que genere la sentencia SQL pertinente:
+Asignándoles así el role de expertos en SQl que tienen que transformar preguntas del usuario en sentencias SQL.
+
+Posteriormente, mediante un *RAG* se obtienen los vectores del documento *PDF* que describe la base de datos que usamos (en nuestro caso la de [Social Network](#base-de-datos-empleada-en-la-fase-de-experimentación)) con el modelo de embedding elegido y la estrategia de partición en *chunks* elegida, y se le pide que genere la sentencia SQL pertinente usando el siguiente prompt:
 
 ```
-    Based on the embeddings in {table}, generate the SQL query to answer: {query_description}.
-    Please provide only the SQL code enclosed within ```sql...``` characters.
+    Based on the embeddings in {table},
+    generate the SQL query to answer: {query_description}.
+    Please provide only the SQL code enclosed within 
+    ```sql...``` characters.
     Context: {' '.join(related_texts)}
 ```
+En el cual le aportamos la descripción de la sentencia en `query_description` y todos los vectores relacionados en `related_texts`.
+
+Para determinar el éxito en la consulta generada, comparamos el resultado obtenido con el de la tabla que aparece en el apartado  de [Datos de evaluación](#datos-de-evaluación) usamos dos métricas. Primero usamos la medida proporcionada por la librería *FuzzyWuzzy* para medir la similitud entre ambas sentencias y además comprobamos el resultado obtenido por ambas queries. Si el resultado es idéntico contamos como éxito (1) si el resultado no coincide, pedimos al modelo *GPT-4o* que analice las respuestas ante ambas sentencias (la generada y la correcta) y nos diga si son iguales, para contar como éxitos esos casos en los que realmente se responde a la pregunta pero el modelo añade información *extra* a la esperada, porque esto no es un error.
 
 El fragmento de código para esto es el siguiente:
 
@@ -604,7 +789,8 @@ El fragmento de código para esto es el siguiente:
             - Expected SQL: {expected_sql}
             - Generated SQL: {generated_sql}
 
-            Can we find the information of expected result in generated result ? No matters if we find extra info in generated_result
+            Can we find the information of expected result in generated result ? 
+            No matters if we find extra info in generated_result
             - Expected Result:\n{str(expected_result)}
             - Generated Result:\n{str(generated_result)}
             """
@@ -612,7 +798,8 @@ El fragmento de código para esto es el siguiente:
             gpt_response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are an expert SQL analyst. Just respond 'yes' or 'no'"},
+                    {"role": "system", "content": "You are an expert SQL analyst. \
+                        Just respond 'yes' or 'no'"},
                     {"role": "user", "content": prompt}
                 ]
             )
@@ -621,6 +808,22 @@ El fragmento de código para esto es el siguiente:
             gpt_result = gpt_response.choices[0].message.content
             result_coincidence = 1 if "yes" in gpt_result.lower() else 0
    ```
+
+
+Con todos estos parámetros en cuenta, la configuración ganadora fue el *Run* de *Mlflow* denominado *polite-fox-990*, que empleó **GPT-4o** utilizando un chunksize de **1536** y la estrategia de segmentación **fixed**. Este modelo logró un excelente desempeño, con una similitud promedio de 84.6 y un 80% de *accuracy* en las consultas SQL generadas. Además se determina que la mejor estrategia de partición en chunks es la *Fixed* y el mejor modelo para embeddings el *text-embedding-3-large* con un chunksize de 1536. A continuación podemos ver los resultados obtenidos con detalle:
+
+![Resultados del mejor modelo de la fase de evaluación](./imgs/evaluation_result_exp.png)
+
+Como podemos ver, hay una gran similitud en general entre la sentencia SQL generada y la esperada, pero hay algunas diferencias en las respuestas que generan, que gracias a la forma en la que evaluamos su precisión podemos determinar si realmente coinciden en intención.
+
+#### Modelo final con el flujo de agentes implementado
+
+Una vez se desarrolla el flujo de agentes como se describe en el punto [Desarrollo del sistema de agentes NL2NSQL](#4-desarrollo-del-sistema-de-agentes-nl2sql) se registra un *Run* en Mlflow para comparar el rendimiento con los resultados obtenidos en la fase anterior, obteniendo una mejoría en el *Accuracy* de las sentencias, como puede verse en los siguientes resultados:
+
+![Resultado del chat de agentes en evaluación](./imgs/evaluation_result_agentes.png)
+
+Como vemos, solo falla en un caso, frente a los 3 errores del mejor modelo en la fase previa. Además la similitud se mantiene elevada para cada consulta. Vemos como el flujo de agentes hace que la calidad de los resultados mejore y se obtengan consultas de mayor calidad comprendiendo la intención del ususario.
+
 
 ### Detalles de la interfaz de ususario
 
