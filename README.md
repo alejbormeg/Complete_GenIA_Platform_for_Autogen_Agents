@@ -31,10 +31,6 @@ What sets this platform apart is our pioneering use of **Autogen** to deploy an 
 
 The integration of Autogen and RAG within our platform represents a novel achievement. **Autogen** allows for the orchestration of multi-agent systems that can interact and refine their outputs in real-time, while **RAG** provides the ability to retrieve relevant information dynamically, improving the accuracy and relevance of the generated SQL queries. This capability is groundbreaking, as it enables the deployment of agents that are not just static responders but are capable of continuous learning and adaptation—something that is not yet fully supported by existing tools like MLflow and Ray in their standard offerings.
 
-This is the schema of the agents flow developed:
-
-![Agents flow](./imgs/NL2SQL_agents.png)
-
 ### Architecture Highlights 🏗️
 
 - **MLflow for Experiment Tracking**: Our platform uses MLflow in an on-premise environment, where we conduct extensive experiments to find the optimal configurations for embedding models, chunking strategies, and GPT-based SQL generation. The winning configuration, identified as **GPT-4o** with a chunk size of **1536** and a **fixed** chunking strategy, achieved state-of-the-art performance in NL2SQL tasks.
@@ -51,6 +47,8 @@ With the platform’s robust infrastructure in place, we deployed an advanced ag
 - **Planner Agent**: Crafts a plan for executing the NL2SQL task, consulting the PostgreSQL database as needed.
 - **NL-to-SQL Agent**: Generates SQL queries based on the planned task.
 - **Feedback Loop Agent**: Iteratively refines the SQL queries, ensuring they meet the desired accuracy and relevance before being sent back to the user.
+
+![Agents flow](./imgs/NL2SQL_agents.png)
 
 This agent system represents a significant step forward in AI deployment, capable of handling complex tasks with high accuracy by leveraging state-of-the-art techniques and infrastructure.
 
