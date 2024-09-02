@@ -31,23 +31,18 @@ feedback_loop_agent = setup_feedback_loop_agent(llm_config)
 def state_transition_manager(last_speaker, groupchat):
 
     if last_speaker is user_proxy:
-        print("-------------> time for PLANNER")
         return planner
     
     elif last_speaker is planner:
-        print("-------------> time for Content analysis")
         return nl_to_sql
     
     elif last_speaker is nl_to_sql and "terminate" in groupchat.messages[-1]["content"].lower():
-        print("-------------> time for User Proxy")
         return user_proxy
 
     elif last_speaker is nl_to_sql:
-        print("-------------> time for Feedback")
         return feedback_loop_agent
     
     elif last_speaker is feedback_loop_agent:
-        print("-------------> time for Content analysis")
         return nl_to_sql
     
     else:
@@ -83,13 +78,6 @@ async def call_rag_chat(task, websocket=None):
         return ret_msg if ret_msg else message
 
     agents = [user_proxy, planner, nl_to_sql, feedback_loop_agent]
-
-    # for agent in agents:
-    #         agent.register_reply(
-    #             [autogen.Agent, None],
-    #             reply_func=send_messages_to_front,
-    #             config={"websocket_manager" : websocket_manager, "websocket": websocket}
-    #         )
 
     document_retrieval_agent.human_input_mode = "NEVER"
 

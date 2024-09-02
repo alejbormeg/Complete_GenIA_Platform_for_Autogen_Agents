@@ -145,7 +145,7 @@ Además se ha includio un conjunto de test que comprueban una vez la arquitectur
 
 ## 4. Desarrollo del Sistema de Agentes NL2SQL
 
-Una vez construida la arquitectura, para aplicarla en un caso de uso real, se ha pensado crear un sistema de Agentes capaz de resolver la tarea de traducir el lenguaje natural a SQL empleando la técnica de RAG. A continuación explicamos todos estos componentes en detalle.
+Una vez construida la arquitectura, para aplicarla en un caso de uso real, se ha pensado crear un sistema de Agentes capaz de resolver la tarea de traducir el lenguaje natural a SQL empleando la técnica de RAG detallada en el artículo de Autogen [Retrieval-Augmented Generation (RAG) Applications with AutoGen](https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat). A continuación explicamos todos estos componentes en detalle.
 
 ### 4.0 Conceptos teóricos
 
@@ -390,6 +390,7 @@ En conclusión, este TFM ha establecido un sólido punto de partida para la crea
 - *MLOps Tools & Platforms Landscape*. neptune.ai. Available at: [https://neptune.ai/blog/mlops-tools-platforms-landscape](https://neptune.ai/blog/mlops-tools-platforms-landscape)
 - MLflow. (2024). MLflow: An Open-Source Platform for the Machine Learning Lifecycle. Available at: [https://mlflow.org/](https://mlflow.org/)
 - Ray. (2024). Ray: A High-Performance Distributed Execution Framework. Available at: [https://www.ray.io/](https://www.ray.io/)
+- Retrieval-Augmented Generation (RAG) Applications with AutoGen. Available at: [https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat](https://microsoft.github.io/autogen/blog/2023/10/18/RetrieveChat)
 
 \newpage
 
