@@ -6,8 +6,10 @@
 [![Mlflow Version](https://img.shields.io/badge/Mlflow-2.14.2-blue)](https://mlflow.org/)
 [![Ray[serve] Version](https://img.shields.io/badge/Ray%5Bserve%5D-2.31.0-blue)](https://www.ray.io/)
 [![AutoGen Version](https://img.shields.io/badge/pyautogen-0.2.32-blue)](https://github.com/microsoft/autogen)
+[![Contact](https://img.shields.io/badge/Contact-alejbormeg%40gmail.com-green)](mailto:alejbormeg@gmail.com)
 
 </div>
+
 
 
 # 🤖 Complete GenIA Platform for Autogen Agents 🤖
