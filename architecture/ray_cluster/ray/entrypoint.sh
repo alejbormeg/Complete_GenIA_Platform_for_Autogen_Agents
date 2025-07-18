@@ -40,7 +40,7 @@ setup_conda_env() {
     pip install tiktoken==0.7.0
     pip install tenacity==8.5.0
     pip install PyMuPDF==1.24.7
-    pip install pyautogen==0.2.32
+    pip install ag2==0.2.32
     pip install chromadb==0.5.4
     pip install markdownify==0.13.1
     pip install pypdf==4.3.0
