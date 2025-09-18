@@ -4,7 +4,7 @@ psycopg2==2.9.5
 pytest==8.2.2
 pyzmq==26.0.3
 python-dotenv==1.0.1
-fuzzywuzzy==0.18.0 
+fuzzywuzzy==0.18.0
 python-Levenshtein==0.25.1
 nltk==3.8.1
 openai==1.35.10
@@ -17,3 +17,10 @@ chromadb==0.5.4
 markdownify==0.13.1
 pypdf==4.3.0
 gradio==4.38.1
+langchain==0.2.6
+langchain-openai==0.1.8
+langgraph==0.0.55
+starlite==2.3.0
+pydantic==2.7.1
+pgvector==0.2.5
+anyio==4.3.0
