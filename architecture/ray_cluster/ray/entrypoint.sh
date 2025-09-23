@@ -25,9 +25,8 @@ setup_conda_env() {
     conda create -y -n ray_env python=3.10
     source $HOME/miniconda/etc/profile.d/conda.sh
     conda activate ray_env
-    pip install ray[serve]==2.31.0 
-    pip install fastapi requests
-    pip install mlflow==2.14.2
+    pip install ray[serve]==2.49.2 
+    pip install requests
     pip install psycopg2==2.9.5
     pip install pytest==8.2.2
     pip install pyzmq==26.0.3
@@ -44,8 +43,6 @@ setup_conda_env() {
     pip install chromadb==0.5.4
     pip install markdownify==0.13.1
     pip install pypdf==4.3.0
-    pip install gradio==4.38.1
-    pip install IPython
 }
 
 # Function to install Prometheus and Grafana

@@ -1,7 +1,19 @@
 import os
+from typing import List, Optional
+
 import psycopg2
-from ray import serve
 from psycopg2.extras import execute_values
+from ray import serve
+
+
+def _connect(database: Optional[str] = None):
+    return psycopg2.connect(
+        host=os.getenv("POSTGRESQL_HOST"),
+        port=os.getenv("POSTGRESQL_PORT"),
+        database=database or os.getenv("POSTGRESQL_DATABASE"),
+        user=os.getenv("POSTGRESQL_USER"),
+        password=os.getenv("POSTGRESQL_PASSWORD"),
+    )
 
 @serve.deployment()
 class PGVectorConnection:
@@ -13,13 +25,7 @@ class PGVectorConnection:
         return vectors
 
     def store_vectors(self, vectors, table, database=None):
-        conn = psycopg2.connect(
-            host=os.getenv("POSTGRESQL_HOST"),
-            port=os.getenv("POSTGRESQL_PORT"),
-            database=os.getenv("POSTGRESQL_DATABASE"),
-            user=os.getenv("POSTGRESQL_USER"),
-            password=os.getenv("POSTGRESQL_PASSWORD")
-        )
+        conn = _connect()
         try:
             with conn.cursor() as cur:
                 if database:
@@ -33,13 +39,7 @@ class PGVectorConnection:
             conn.close()
     
     def execute_query(self, database: str, query: str):
-        conn = psycopg2.connect(
-            host=os.getenv("POSTGRESQL_HOST"),
-            port=os.getenv("POSTGRESQL_PORT"),
-            database=database,
-            user=os.getenv("POSTGRESQL_USER"),
-            password=os.getenv("POSTGRESQL_PASSWORD")
-        )
+        conn = _connect(database)
 
         try:
             with conn.cursor() as cur:
@@ -49,15 +49,9 @@ class PGVectorConnection:
             return result
         finally:
             conn.close()
-        
+
     def delete_all_vectors(self, table: str):
-        conn = psycopg2.connect(
-            host=os.getenv("POSTGRESQL_HOST"),
-            port=os.getenv("POSTGRESQL_PORT"),
-            database=os.getenv("POSTGRESQL_DATABASE"),
-            user=os.getenv("POSTGRESQL_USER"),
-            password=os.getenv("POSTGRESQL_PASSWORD")
-        )
+        conn = _connect()
 
         try:
             with conn.cursor() as cur:
@@ -65,3 +59,17 @@ class PGVectorConnection:
             conn.commit()
         finally:
             conn.close()
+
+    def list_vector_databases(self, chunk_size: int) -> List[str]:
+        table = f"vector_embeddings_{chunk_size}"
+        conn = _connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT DISTINCT database FROM {table} WHERE database IS NOT NULL ORDER BY database"
+                )
+                rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        return [row[0] for row in rows if row[0]]

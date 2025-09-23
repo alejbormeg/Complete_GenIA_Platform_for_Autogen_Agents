@@ -1,8 +1,13 @@
-from ray import serve
-from ray.serve.handle import DeploymentHandle
 from typing import List
 
-@serve.deployment
+from ray import serve
+
+try:  # Ray >= 2.49 renames DeploymentHandle
+    from ray.serve.handle import RayServeDeploymentHandle as DeploymentHandle
+except ImportError:  # pragma: no cover - fallback for older versions
+    from ray.serve.handle import DeploymentHandle
+
+@serve.deployment()
 class Text2Vectors:
     def __init__(
         self, chunk_method: DeploymentHandle, embedding_endpoint: DeploymentHandle
@@ -27,12 +32,12 @@ class Text2Vectors:
             text += page.get_text()
         return text
 
-@serve.deployment
+@serve.deployment()
 class ChunkStrategy:
     def chunk_fixed(self, sentences: List[str], chunk_size: int) -> List[List[str]]:
         return [sentences[i:i + chunk_size] for i in range(0, len(sentences), chunk_size)]
 
-@serve.deployment
+@serve.deployment()
 class EmbeddingEndpoints:
     # Function to create embeddings
     def create_embedding(self, text: str, model: str, dimensions: int = None) -> List[float]:

@@ -1,86 +1,30 @@
-"""Starlite endpoints exposing the LangChain NL2SQL workflow."""
+"""Starlite routes serving the demo frontend."""
 
 from __future__ import annotations
 
-from typing import Any, List
+from starlite import Provide, Router, get
+from starlite.response import Template
 
-from starlite import Provide, Router, WebSocket, WebSocketDisconnect, get, post, websocket
-
-from langchain_app import LangChainAppSettings, NL2SQLWorkflow
-
-from .models import NL2SQLRequest, NL2SQLResponse, RetrievalChunk
+from .settings import FrontendSettings
 
 
-def _convert_chunks(chunks: List[dict]) -> List[RetrievalChunk]:
-    return [RetrievalChunk.model_validate(chunk) for chunk in chunks]
+def build_router(*, settings: FrontendSettings) -> Router:
+    dependencies = {"settings": Provide(lambda: settings)}
 
-
-def build_router(
-    *,
-    settings: LangChainAppSettings,
-    workflow: NL2SQLWorkflow,
-) -> Router:
-    """Create a router with REST and WebSocket handlers."""
-
-    dependencies = {
-        "settings": Provide(lambda: settings),
-        "workflow": Provide(lambda: workflow),
-    }
+    @get("/")
+    async def index(settings: FrontendSettings) -> Template:
+        return Template(
+            name="index.html",
+            context={
+                "backend_url": settings.backend_url,
+                "default_chunk_size": settings.default_chunk_size,
+                "pg_database": settings.pg_database,
+                "embedding_model": settings.embedding_model,
+            },
+        )
 
     @get("/healthz")
-    async def health(settings: LangChainAppSettings) -> dict[str, Any]:
-        return {
-            "status": "ok",
-            "model": settings.chat_model,
-            "vector_table": settings.vector_table,
-        }
+    async def health(settings: FrontendSettings) -> dict[str, str]:
+        return {"status": "ok", "backend_url": settings.backend_url}
 
-    @post("/chat/nl2sql")
-    async def chat_endpoint(
-        data: NL2SQLRequest,
-        workflow: NL2SQLWorkflow,
-    ) -> NL2SQLResponse:
-        result = await workflow.arun(
-            data.question,
-            database=data.database,
-            top_k=data.top_k,
-        )
-        return NL2SQLResponse(
-            question=result.question,
-            database=result.database,
-            plan=result.plan,
-            sql_query=result.sql_query,
-            feedback=result.feedback,
-            retrieved_context=_convert_chunks(result.retrieved_context),
-        )
-
-    @websocket("/ws/nl2sql")
-    async def websocket_endpoint(
-        socket: WebSocket,
-        workflow: NL2SQLWorkflow,
-    ) -> None:
-        await socket.accept()
-        try:
-            payload = await socket.receive_json()
-            data = NL2SQLRequest.model_validate(payload)
-            result = await workflow.arun(
-                data.question,
-                database=data.database,
-                top_k=data.top_k,
-            )
-            await socket.send_json(
-                NL2SQLResponse(
-                    question=result.question,
-                    database=result.database,
-                    plan=result.plan,
-                    sql_query=result.sql_query,
-                    feedback=result.feedback,
-                    retrieved_context=_convert_chunks(result.retrieved_context),
-                ).model_dump()
-            )
-        except WebSocketDisconnect:
-            pass
-        finally:
-            await socket.close()
-
-    return Router(path="", route_handlers=[health, chat_endpoint, websocket_endpoint], dependencies=dependencies)
+    return Router(path="", route_handlers=[index, health], dependencies=dependencies)

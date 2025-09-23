@@ -1,111 +1,131 @@
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
 from ray import serve
+
+from langchain_app import LangChainAppSettings, NL2SQLWorkflow
+from langchain_app.orchestration.nl2sql_workflow import NL2SQLResult
+
 
 @serve.deployment()
 class RAGChatEndpoint:
+    """Ray Serve deployment that proxies the LangChain NL2SQL workflow."""
+
     def __init__(self) -> None:
-        from utils.utils import send_messages_to_front
-        from utils.config import create_openai_client, retrieve_config, config
-        from agents.feedback_loop_agent import setup_feedback_loop_agent
-        from agents.nl_to_sql_agent import setup_nl_to_sql_agent
-        from agents.planner_agent import setup_planner_agent
-        from agents.rag_pgvector_agent import setup_rag_pgvector_agent
-        from agents.user_proxy_agent import setup_user_proxy_agent
+        self.logger = logging.getLogger(__name__)
+        self.settings = LangChainAppSettings.from_env()
+        self.workflow = NL2SQLWorkflow(self.settings)
 
-        # These are now initialized within the instance to avoid serialization issues.
-        self.openai_client = create_openai_client()
-        self.retrieve_config_ = retrieve_config(self.openai_client)
-        self.llm_config = config()
-        
-        self.document_retrieval_agent = setup_rag_pgvector_agent(name="DRA", retrieve_config=self.retrieve_config_, client=self.openai_client)
-        self.user_proxy = setup_user_proxy_agent()
-        self.planner = setup_planner_agent(self.llm_config)
-        self.nl_to_sql = setup_nl_to_sql_agent(self.llm_config)
-        self.feedback_loop_agent = setup_feedback_loop_agent(self.llm_config)
+    async def call_rag_chat(
+        self,
+        task: str,
+        database: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Execute the LangChain NL2SQL workflow and return chat-like messages."""
 
-    async def call_rag_chat(self, task, database=None):
-        from autogen import GroupChat, GroupChatManager
-        from typing_extensions import Annotated
-        from agents.rag_pgvector_agent import setup_rag_pgvector_agent
+        prompt = task.strip()
+        db_filter = self._normalize_database(database)
 
+        user_message = self._build_user_message(prompt, database)
+
+        try:
+            result = await self.workflow.arun(
+                prompt,
+                database=db_filter,
+            )
+        except Exception as exc:  # pragma: no cover - defensive fallback for runtime issues
+            self.logger.exception("LangChain workflow failed")
+            return [
+                user_message,
+                {
+                    "role": "assistant",
+                    "name": "FeedbackLoopAgent",
+                    "content": f"Workflow execution failed: {exc}",
+                },
+            ]
+
+        return self._build_messages(user_message, result)
+
+    @staticmethod
+    def _normalize_database(database: Optional[str]) -> Optional[str]:
+        if not database:
+            return None
+        normalized = database.strip()
+        if not normalized or normalized.lower() == "all":
+            return None
+        return normalized
+
+    @staticmethod
+    def _build_user_message(task: str, database: Optional[str]) -> Dict[str, Any]:
+        content = task
         if database:
-            self.document_retrieval_agent = setup_rag_pgvector_agent(name="DRA", retrieve_config=self.retrieve_config_, client=self.openai_client, database=database)
- 
-        # Reset and setup agents - ideally this should be encapsulated in methods or managed statefully
-        self.user_proxy.reset()
-        self.planner.reset()
-        self.document_retrieval_agent.reset()
-        self.nl_to_sql.reset()
-        self.feedback_loop_agent.reset()
+            content = f"{task}\n\nTarget database: {database}"
+        return {
+            "role": "user",
+            "name": "UserProxyAgent",
+            "content": content,
+        }
 
-        def retrieve_content(
-            message: Annotated[
-                str,
-                "Refined message which keeps the original meaning and can be used to retrieve content for question answering.",
-            ],
-            n_results: Annotated[int, "number of results"] = 3,
-        ) -> str:
-            self.document_retrieval_agent.n_results = n_results
-            # Check if we need to update the context.
-            update_context_case1, update_context_case2 = self.document_retrieval_agent._check_update_context(message)
-            print(f"Update_context_1: ")
-            if (update_context_case1 or update_context_case2) and self.document_retrieval_agent.update_context:
-                self.document_retrieval_agent.problem = message if not hasattr(self.document_retrieval_agent, "problem") else self.document_retrieval_agent.problem
-                _, ret_msg = self.document_retrieval_agent._generate_retrieve_user_reply(message)
-            else:
-                _context = {"problem": message, "n_results": n_results}
-                ret_msg = self.document_retrieval_agent.message_generator(self.document_retrieval_agent, None, _context)
-            return ret_msg if ret_msg else message
-    
-        agents = [self.user_proxy, self.planner, self.nl_to_sql, self.feedback_loop_agent]
+    def _build_messages(
+        self,
+        user_message: Dict[str, Any],
+        result: NL2SQLResult,
+    ) -> List[Dict[str, Any]]:
+        messages: List[Dict[str, Any]] = [user_message]
 
-        self.document_retrieval_agent.human_input_mode = "NEVER"
+        if result.retrieved_context:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "name": "PgVectorAgent",
+                    "content": self._format_retrievals(result.retrieved_context),
+                }
+            )
 
-        for caller in [self.planner]:
-            d_retrieve_content = caller.register_for_llm(
-                description= "Retrieve content for question answering", api_style="function"
-            )(retrieve_content)
-
-        for executor in agents:
-            executor.register_for_execution()(d_retrieve_content)
-
-        # Initialize chat components and start chatting process
-        groupchat = GroupChat(
-            agents=[self.user_proxy, self.planner, self.nl_to_sql, self.feedback_loop_agent],
-            messages=[],
-            max_round=12,
-            speaker_selection_method=self.state_transition_manager,
-            allow_repeat_speaker=False,
+        plan_text = result.plan.strip() if result.plan else "No plan generated."
+        messages.append(
+            {
+                "role": "assistant",
+                "name": "PlannerAgent",
+                "content": plan_text,
+            }
         )
-        manager = GroupChatManager(groupchat=groupchat, llm_config=self.llm_config)
-        
-        if database:
-            task = task + f"\n\nThe database is {database}"
 
-        await self.user_proxy.a_initiate_chat(manager, message=task)
-        return groupchat.messages
+        final_content = self._build_final_message(result)
+        messages.append(
+            {
+                "role": "assistant",
+                "name": "FeedbackLoopAgent",
+                "content": final_content,
+            }
+        )
 
-    # Define tranitions
-    def state_transition_manager(self, last_speaker, groupchat):
+        return messages
 
-        if last_speaker is self.user_proxy:
-            print("-------------> time for PLANNER")
-            return self.planner
-        
-        elif last_speaker is self.planner:
-            print("-------------> time for Content analysis")
-            return self.nl_to_sql
-        
-        elif last_speaker is self.nl_to_sql and "terminate" in groupchat.messages[-1]["content"].lower():
-            print("-------------> time for User Proxy")
-            return self.user_proxy
+    @staticmethod
+    def _format_retrievals(chunks: List[Dict[str, Any]]) -> str:
+        formatted: List[str] = []
+        for index, chunk in enumerate(chunks, start=1):
+            metadata = chunk.get("metadata") or {}
+            metadata_str = ", ".join(f"{key}={value}" for key, value in metadata.items()) or "none"
+            formatted.append(
+                f"[{index}] score={chunk.get('score', 0.0):.4f}, metadata={metadata_str}\n{chunk.get('text', '')}".strip()
+            )
+        return "\n\n".join(formatted)
 
-        elif last_speaker is self.nl_to_sql:
-            print("-------------> time for Feedback")
-            return self.feedback_loop_agent
-        
-        elif last_speaker is self.feedback_loop_agent:
-            print("-------------> time for Content analysis")
-            return self.nl_to_sql
-        
-        else:
-            return "auto"
+    @staticmethod
+    def _build_final_message(result: NL2SQLResult) -> str:
+        sections: List[str] = []
+
+        feedback = (result.feedback or "").strip()
+        if feedback:
+            sections.append(feedback)
+
+        sql_query = (result.sql_query or "").strip()
+        if sql_query:
+            sections.append(f"```sql\n{sql_query}\n```")
+
+        return "\n\n".join(sections) if sections else "No SQL generated."
+

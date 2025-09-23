@@ -1,25 +1,25 @@
-"""Starlite application exposing the LangChain NL2SQL workflow."""
+"""Starlite application serving the demo UI."""
 
 from __future__ import annotations
 
-from starlite import Starlite
+from pathlib import Path
 
-from langchain_app import LangChainAppSettings, NL2SQLWorkflow
+from starlite import Starlite
+from starlite.config import TemplateConfig
+from starlite.template import JinjaTemplateEngine
 
 from .routes import build_router
+from .settings import FrontendSettings
 
 
-def create_app(
-    *,
-    settings: LangChainAppSettings | None = None,
-    workflow: NL2SQLWorkflow | None = None,
-) -> Starlite:
-    """Instantiate the Starlite application."""
-
-    resolved_settings = settings or LangChainAppSettings.from_env()
-    resolved_workflow = workflow or NL2SQLWorkflow(resolved_settings)
-    router = build_router(settings=resolved_settings, workflow=resolved_workflow)
-    return Starlite(route_handlers=[router])
+def create_app(*, settings: FrontendSettings | None = None) -> Starlite:
+    resolved_settings = settings or FrontendSettings()
+    template_config = TemplateConfig(
+        directory=Path(__file__).parent / "templates",
+        engine=JinjaTemplateEngine,
+    )
+    router = build_router(settings=resolved_settings)
+    return Starlite(route_handlers=[router], template_config=template_config)
 
 
-__all__ = ["create_app"]
+__all__ = ["create_app", "FrontendSettings"]

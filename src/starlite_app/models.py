@@ -1,36 +1,39 @@
-"""Pydantic schemas for the Starlite interface."""
+"""Request and response models for the Starlite frontend."""
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
-class NL2SQLRequest(BaseModel):
-    question: str = Field(..., description="User natural language request")
-    database: Optional[str] = Field(
-        default=None,
-        description="Optional database identifier used to filter vector search",
-    )
-    top_k: Optional[int] = Field(
-        default=None,
-        ge=1,
-        le=20,
-        description="Override the number of vector matches to retrieve",
-    )
+class ChatRequest(BaseModel):
+    task: str
+    database: Optional[str] = Field(default=None, description="Optional dataset label to guide the agents")
 
 
-class RetrievalChunk(BaseModel):
-    text: str
-    score: float
-    metadata: Dict[str, Any]
+class ChatResponse(BaseModel):
+    messages: List[dict]
 
 
-class NL2SQLResponse(BaseModel):
-    question: str
-    database: Optional[str]
-    plan: str
-    sql_query: str
-    feedback: str
-    retrieved_context: List[RetrievalChunk]
+class QueryRequest(BaseModel):
+    query: str
+
+
+class QueryResponse(BaseModel):
+    rows: List[List]
+
+
+class UploadResponse(BaseModel):
+    detail: str
+    database: Optional[str] = None
+    chunk_size: int
+
+
+__all__ = [
+    "ChatRequest",
+    "ChatResponse",
+    "QueryRequest",
+    "QueryResponse",
+    "UploadResponse",
+]

@@ -5,7 +5,7 @@ FROM python:3.10
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    && pip install --no-cache-dir ray[default]==2.31.0 \
+    && pip install --no-cache-dir ray[default]==2.49.2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

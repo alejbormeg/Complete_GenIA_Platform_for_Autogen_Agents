@@ -1,12 +1,18 @@
-import ray
 import os
-import psycopg2
-from ray import serve
-from ray.serve.handle import DeploymentHandle
 from typing import List
-from psycopg2.extras import execute_values
 
-@serve.deployment
+import psycopg2
+import ray
+from psycopg2.extras import execute_values
+from ray import serve
+
+try:  # Ray >= 2.49 renames DeploymentHandle
+    from ray.serve.handle import RayServeDeploymentHandle as DeploymentHandle
+except ImportError:  # pragma: no cover - fallback for older versions
+    from ray.serve.handle import DeploymentHandle
+
+
+@serve.deployment(route_prefix="/text2vectors")
 class PGVectorConnection:
     def __init__(self, text_to_vectors: DeploymentHandle) -> None:
         self.text2vectors = text_to_vectors
@@ -55,7 +61,7 @@ class PGVectorConnection:
         finally:
             conn.close()
 
-@serve.deployment
+@serve.deployment()
 class Text2Vectors:
     def __init__(
         self, chunk_method: DeploymentHandle, embedding_endpoint: DeploymentHandle
@@ -79,12 +85,12 @@ class Text2Vectors:
 
         return vectors
 
-@serve.deployment
+@serve.deployment()
 class ChunkStrategy:
     def chunk_fixed(self, sentences: List[str], chunk_size: int) -> List[List[str]]:
         return [sentences[i:i + chunk_size] for i in range(0, len(sentences), chunk_size)]
 
-@serve.deployment
+@serve.deployment()
 class EmbeddingEndpoints:
     # Function to create embeddings
     def create_embedding(self, text: str, model: str, dimensions: int = None) -> List[float]:
@@ -96,16 +102,12 @@ class EmbeddingEndpoints:
 
         return response
 
-os.environ['RAY_ADDRESS'] = "ray://localhost:10001"
-ray.init()
-serve.start()
-
-runtime_env = {
-    "conda": "src/utils/conda_environments/conda.yaml"
-}
+ray_address = os.getenv("RAY_ADDRESS", "ray://localhost:10001")
+ray.init(address=ray_address)
+serve.start(detached=True)
 
 test2vectors_app = Text2Vectors.bind(ChunkStrategy.bind(), EmbeddingEndpoints.bind())
 app = PGVectorConnection.bind(test2vectors_app)
-serve.run(app, route_prefix="/text2vectors")
+serve.run(app)
 
 print("Deployed Text2Vectors, ChunkStrategy, and EmbeddingEndpoints on the Ray cluster.")
