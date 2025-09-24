@@ -10,12 +10,12 @@ from .settings import FrontendSettings
 
 
 def build_router(*, settings: FrontendSettings) -> Router:
-    dependencies = {"settings": Provide(lambda: settings)}
+    dependencies = {"settings": Provide(lambda: settings, sync_to_thread=False)}
 
     @get("/")
     async def index(settings: FrontendSettings) -> Template:
         return Template(
-            name="index.html",
+            template_name="index.html",
             context={
                 "backend_url": settings.backend_url,
                 "default_chunk_size": settings.default_chunk_size,
