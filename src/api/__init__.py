@@ -1,4 +1,4 @@
-"""FastAPI application that proxies Ray Serve deployments."""
+"""FastAPI application exposing vector operations and agent workflows."""
 
 from .app import app
 

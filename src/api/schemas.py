@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+DEFAULT_CHUNK_SIZE = int(os.getenv("DEFAULT_CHUNK_SIZE", "1536"))
 
 
 class VectorRecord(BaseModel):
@@ -67,7 +71,7 @@ class UploadPdfResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
-    ray_address: str
+    database_status: str
 
 
 class VectorDatabasesResponse(BaseModel):

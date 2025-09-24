@@ -2,26 +2,35 @@
 
 set -euo pipefail
 
-NETWORK_NAME="common_network"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 
-if ! docker network ls --format '{{.Name}}' | grep -w "$NETWORK_NAME" >/dev/null 2>&1; then
-    echo "Creating Docker network: $NETWORK_NAME"
-    docker network create "$NETWORK_NAME"
+ACTION="${1:-up}"
+
+if docker compose version >/dev/null 2>&1; then
+  DOCKER_COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  DOCKER_COMPOSE=(docker-compose)
 else
-    echo "Docker network '$NETWORK_NAME' already exists."
+  echo "Docker Compose is required but not installed." >&2
+  exit 1
 fi
 
-echo "Starting Ray cluster"
-(
-    cd ray_cluster
-    ./start_ray_cluster.sh
-)
-
-echo "Ray cluster bootstrapped."
-echo
-cat <<INSTRUCTIONS
-Next steps:
-  1. Launch the FastAPI backend:    ./architecture/start_backend.sh
-  2. Launch the Starlite frontend:  ./architecture/start_frontend.sh
-  3. Open the frontend in your browser (default http://localhost:3000)
-INSTRUCTIONS
+case "$ACTION" in
+  up)
+    "${DOCKER_COMPOSE[@]}" -f "$COMPOSE_FILE" up -d --build
+    echo "Containers started."
+    echo "Backend:  http://localhost:8001"
+    echo "Frontend: http://localhost:3000"
+    ;;
+  down)
+    "${DOCKER_COMPOSE[@]}" -f "$COMPOSE_FILE" down
+    ;;
+  logs)
+    "${DOCKER_COMPOSE[@]}" -f "$COMPOSE_FILE" logs -f
+    ;;
+  *)
+    echo "Usage: $0 [up|down|logs]" >&2
+    exit 1
+    ;;
+ esac

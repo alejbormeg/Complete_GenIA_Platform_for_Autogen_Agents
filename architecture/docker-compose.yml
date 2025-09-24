@@ -1,0 +1,58 @@
+services:
+  pgvector:
+    image: ankane/pgvector:latest
+    container_name: pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vector_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+      - ../databases/vector_db/creation_script:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ..
+      dockerfile: architecture/backend/Dockerfile
+    container_name: genia-backend
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_HOST: pgvector
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_USER: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: vector_db
+      DEFAULT_CHUNK_SIZE: "1536"
+      PGVECTOR_TABLE: vector_embeddings_1536
+      PGVECTOR_DIMENSIONS: "1536"
+      PGVECTOR_TOP_K: "3"
+      GPT_MODEL: gpt-4o-mini
+      GPT_EMBEDDING_ENGINE: text-embedding-3-large
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      - pgvector
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: architecture/frontend/Dockerfile
+    container_name: genia-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8001
+      DEFAULT_CHUNK_SIZE: "1536"
+      POSTGRESQL_DATABASE: vector_db
+      GPT_EMBEDDING_ENGINE: text-embedding-3-large
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgvector_data:
+    driver: local
