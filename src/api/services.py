@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional, Sequence
 
 import anyio
-from openai import OpenAI
+from openai import DefaultHttpxClient, OpenAI
 import psycopg2
 from psycopg2.extras import execute_values
 
-from ..langchain_app import LangChainAppSettings, NL2SQLWorkflow
+from langchain_app import LangChainAppSettings, NL2SQLWorkflow
 from . import schemas
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,13 @@ class EmbeddingClient:
     """Thin wrapper around the OpenAI embeddings API."""
 
     def __init__(self) -> None:
-        self._client = OpenAI()
+        try:
+            self._client = OpenAI()
+        except TypeError as exc:
+            if "proxies" not in str(exc):
+                raise
+            # Retry with an explicit httpx client to avoid proxy kwarg issues.
+            self._client = OpenAI(http_client=DefaultHttpxClient())
 
     def create_embedding(self, text: str, model: str, dimensions: Optional[int]) -> List[float]:
         if not text:
