@@ -1,25 +1,34 @@
-"""Starlite application serving the demo UI."""
-
-from __future__ import annotations
-
+# src/starlite_app/__init__.py
 from pathlib import Path
 
-from starlite import Starlite
-from starlite.config import TemplateConfig
-from starlite.template import JinjaTemplateEngine
+# IMPORTANT: we are on starlite==1.x, not "litestar"
+from starlite import Starlite, get, TemplateConfig
+from starlite.response import Template
+from starlite.contrib.jinja import Jinja2Engine
 
-from .routes import build_router
-from .settings import FrontendSettings
+# If you serve static assets, you can enable StaticFilesConfig as shown below
+try:
+    from starlite.config.static_files import StaticFilesConfig
+except Exception:
+    StaticFilesConfig = None  # starlite is present; this is defensive
 
+BASE_DIR = Path(__file__).parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = BASE_DIR / "static"
 
-def create_app(*, settings: FrontendSettings | None = None) -> Starlite:
-    resolved_settings = settings or FrontendSettings()
-    template_config = TemplateConfig(
-        directory=Path(__file__).parent / "templates",
-        engine=JinjaTemplateEngine,
-    )
-    router = build_router(settings=resolved_settings)
-    return Starlite(route_handlers=[router], template_config=template_config)
+template_config = TemplateConfig(directory=TEMPLATES_DIR, engine=Jinja2Engine)
 
+@get("/")
+def index() -> Template:
+    # Render your Jinja template. Make sure templates/index.html exists
+    return Template(name="index.html", context={"title": "App"})
 
-__all__ = ["create_app", "FrontendSettings"]
+static_files = None
+if StaticFilesConfig and STATIC_DIR.exists():
+    static_files = [StaticFilesConfig(path="/static", directories=[STATIC_DIR])]
+
+app = Starlite(
+    route_handlers=[index],
+    template_config=template_config,
+    static_files_config=static_files or [],
+)

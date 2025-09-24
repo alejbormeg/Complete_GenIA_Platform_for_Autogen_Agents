@@ -1,406 +1,144 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GenIA Agents Demo</title>
-    <style>
-        :root {
-            color-scheme: light dark;
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            margin: 0;
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-
-        header {
-            padding: 1.5rem;
-            background: #1e293b;
-            text-align: center;
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-
-        main {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 2rem 1rem 4rem;
-            display: grid;
-            gap: 2rem;
-        }
-
-        section {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.45);
-        }
-
-        h2 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            font-size: 1.4rem;
-            color: #38bdf8;
-        }
-
-        label {
-            font-weight: 600;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="file"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: inherit;
-        }
-
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        button {
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: filter 0.2s ease-in-out;
-        }
-
-        button:hover {
-            filter: brightness(1.1);
-        }
-
-        .actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .result {
-            margin-top: 1rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background: #0f172a;
-            border: 1px solid #334155;
-            white-space: pre-wrap;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-            font-size: 0.95rem;
-        }
-
-        th,
-        td {
-            padding: 0.65rem;
-            border: 1px solid #334155;
-            text-align: left;
-        }
-
-        .badge {
-            background: #38bdf8;
-            color: #0f172a;
-            border-radius: 9999px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.75rem;
-            margin-left: 0.5rem;
-        }
-
-        .messages {
-            display: grid;
-            gap: 0.75rem;
-        }
-
-        .message {
-            border-radius: 8px;
-            padding: 0.75rem;
-            background: #0f172a;
-            border: 1px solid #334155;
-        }
-
-        .message strong {
-            color: #38bdf8;
-        }
-
-        @media (max-width: 720px) {
-            main {
-                padding: 1.5rem 1rem 3rem;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>RAG UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --text: #e5e7eb;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    }
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+    }
+    p.muted { color: var(--muted); }
+    form { display: grid; gap: .75rem; margin-top: 1rem; }
+    label { font-weight: 600; }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: .65rem .75rem;
+      border-radius: 10px;
+      border: 1px solid #374151;
+      background: #0b1220;
+      color: var(--text);
+      outline: none;
+    }
+    textarea { min-height: 140px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    button {
+      background: var(--accent);
+      color: white;
+      border: 0;
+      padding: .7rem 1rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s ease-in-out;
+    }
+    button:hover {
+      opacity: .9;
+    }
+    .hint { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
+    .output { margin-top: 1rem; white-space: pre-wrap; background: #0b1220; border-radius: 10px; padding: .75rem; border: 1px solid #374151; }
+  </style>
 </head>
 <body>
-    <header>Complete GenIA Demo</header>
-    <main>
-        <section id="upload">
-            <h2>1. Upload Knowledge Source</h2>
-            <form id="upload-form">
-                <label for="upload-file">PDF document</label>
-                <input type="file" id="upload-file" accept="application/pdf" required />
+  <div class="container">
+    <div class="card">
+      <h1>RAG Console</h1>
+      <p class="muted">Upload text, embed, and chat with your data.</p>
 
-                <label for="upload-dataset">Existing dataset</label>
-                <select id="upload-dataset"></select>
+      <form id="embed-form">
+        <div class="row">
+          <div>
+            <label for="chunk_size">Chunk Size</label>
+            <input id="chunk_size" name="chunk_size" type="number" min="1" value="{{ default_chunk_size }}" />
+            <div class="hint">Size used for text chunking and embedding dimensions.</div>
+          </div>
+          <div>
+            <label for="embedding_model">Embedding Model</label>
+            <select id="embedding_model" name="embedding_model">
+              <option value="{{ embedding_model }}" selected>{{ embedding_model }}</option>
+              <option value="text-embedding-3-small">text-embedding-3-small</option>
+              <option value="text-embedding-3-large">text-embedding-3-large</option>
+            </select>
+            <div class="hint">OpenAI text-embedding-3 models support a custom <code>dimensions</code> value.</div>
+          </div>
+        </div>
 
-                <label for="upload-new-dataset">Or create a new dataset</label>
-                <input type="text" id="upload-new-dataset" placeholder="dataset name" />
+        <div>
+          <label for="database">Logical Database Label (optional)</label>
+          <input id="database" name="database" type="text" placeholder="ex: sales_2024_q3" value="{{ pg_database or '' }}" />
+        </div>
 
-                <label for="upload-chunk">Chunk size</label>
-                <input type="number" id="upload-chunk" min="1" required />
+        <div>
+          <label for="text">Text</label>
+          <textarea id="text" name="text" placeholder="Paste content to embed..."></textarea>
+        </div>
 
-                <label for="upload-embedding">Embedding model</label>
-                <input type="text" id="upload-embedding" required />
+        <div>
+          <button type="submit">Embed</button>
+        </div>
+      </form>
 
-                <div class="actions">
-                    <button type="submit">Upload document</button>
-                    <button type="button" id="upload-refresh">Refresh datasets</button>
-                </div>
-            </form>
-            <div id="upload-result" class="result"></div>
-        </section>
+      <div id="result" class="output" hidden></div>
+    </div>
+  </div>
 
-        <section id="query">
-            <h2>2. Run SQL</h2>
-            <form id="query-form">
-                <label for="query-sql">SQL query (executed against <span class="badge" id="pg-database"></span>)</label>
-                <textarea id="query-sql" placeholder="SELECT * FROM vector_embeddings_1536 LIMIT 5;"></textarea>
-                <div class="actions">
-                    <button type="submit">Execute query</button>
-                </div>
-            </form>
-            <div id="query-result" class="result"></div>
-        </section>
+  <script>
+    const DEFAULT_CHUNK_SIZE = {{ default_chunk_size }};
+    const PG_DATABASE = "{{ pg_database }}";
+    const DEFAULT_EMBEDDING_MODEL = "{{ embedding_model }}";
 
-        <section id="chat">
-            <h2>3. Talk with the Agents</h2>
-            <form id="chat-form">
-                <label for="chat-task">Task description</label>
-                <textarea id="chat-task" placeholder="Ask the agents what the dataset contains"></textarea>
+    const result = document.getElementById("result");
+    document.getElementById("embed-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        chunk_size: Number(document.getElementById("chunk_size").value || DEFAULT_CHUNK_SIZE),
+        embedding_model: document.getElementById("embedding_model").value || DEFAULT_EMBEDDING_MODEL,
+        database: document.getElementById("database").value || null,
+        text: document.getElementById("text").value || ""
+      };
 
-                <label for="chat-dataset">Dataset (optional)</label>
-                <select id="chat-dataset"></select>
-
-                <div class="actions">
-                    <button type="submit">Send task</button>
-                    <button type="button" id="chat-refresh">Refresh datasets</button>
-                </div>
-            </form>
-            <div id="chat-result" class="result"></div>
-        </section>
-    </main>
-    <script>
-        const BACKEND_URL = "{{ backend_url }}";
-        const DEFAULT_CHUNK_SIZE = {{ default_chunk_size }};
-        const PG_DATABASE = "{{ pg_database }}";
-        const DEFAULT_EMBEDDING_MODEL = "{{ embedding_model }}";
-
-        const uploadDatasetSelect = document.getElementById("upload-dataset");
-        const chatDatasetSelect = document.getElementById("chat-dataset");
-        const uploadResult = document.getElementById("upload-result");
-        const queryResult = document.getElementById("query-result");
-        const chatResult = document.getElementById("chat-result");
-
-        function setStatus(element, message, isError = false) {
-            element.textContent = message;
-            element.style.borderColor = isError ? "#ef4444" : "#334155";
-        }
-
-        function renderDatasets(select) {
-            return (datasets) => {
-                select.innerHTML = "";
-                const baseOption = document.createElement("option");
-                baseOption.value = "";
-                baseOption.textContent = "None";
-                select.appendChild(baseOption);
-                datasets.forEach((item) => {
-                    const option = document.createElement("option");
-                    option.value = item;
-                    option.textContent = item;
-                    select.appendChild(option);
-                });
-            };
-        }
-
-        async function fetchDatasets() {
-            try {
-                const response = await fetch(`${BACKEND_URL}/vector_databases?chunk_size=${DEFAULT_CHUNK_SIZE}`);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch datasets: ${response.status}`);
-                }
-                const payload = await response.json();
-                const datasets = payload.databases || [];
-                renderDatasets(uploadDatasetSelect)(datasets);
-                renderDatasets(chatDatasetSelect)(datasets);
-            } catch (error) {
-                console.error(error);
-                renderDatasets(uploadDatasetSelect)([]);
-                renderDatasets(chatDatasetSelect)([]);
-            }
-        }
-
-        async function handleUpload(event) {
-            event.preventDefault();
-            const fileInput = document.getElementById("upload-file");
-            const newDatasetInput = document.getElementById("upload-new-dataset");
-            const chunkSizeInput = document.getElementById("upload-chunk");
-            const embeddingInput = document.getElementById("upload-embedding");
-
-            if (!fileInput.files?.length) {
-                setStatus(uploadResult, "Select a PDF document first", true);
-                return;
-            }
-
-            const dataset = newDatasetInput.value.trim() || uploadDatasetSelect.value;
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-            formData.append("chunk_size", chunkSizeInput.value);
-            formData.append("embedding_model", embeddingInput.value);
-            if (dataset) {
-                formData.append("database", dataset);
-            }
-
-            setStatus(uploadResult, "Uploading document...");
-            try {
-                const response = await fetch(`${BACKEND_URL}/upload_pdf`, {
-                    method: "POST",
-                    body: formData,
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Upload failed");
-                }
-                setStatus(uploadResult, `Success: ${payload.detail || "document stored"}`);
-                fileInput.value = "";
-                newDatasetInput.value = "";
-                await fetchDatasets();
-            } catch (error) {
-                setStatus(uploadResult, error.message, true);
-            }
-        }
-
-        function renderQueryTable(rows) {
-            if (!rows.length) {
-                return "No rows returned.";
-            }
-            const headers = rows[0].map((_, index) => `Column ${index + 1}`);
-            const table = document.createElement("table");
-            const thead = document.createElement("thead");
-            const headerRow = document.createElement("tr");
-            headers.forEach((header) => {
-                const th = document.createElement("th");
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-
-            const tbody = document.createElement("tbody");
-            rows.forEach((row) => {
-                const tr = document.createElement("tr");
-                row.forEach((value) => {
-                    const td = document.createElement("td");
-                    td.textContent = value;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            return table.outerHTML;
-        }
-
-        async function handleQuery(event) {
-            event.preventDefault();
-            const sql = document.getElementById("query-sql").value.trim();
-            if (!sql) {
-                setStatus(queryResult, "Type a SQL statement.", true);
-                return;
-            }
-
-            setStatus(queryResult, "Running query...");
-            try {
-                const response = await fetch(`${BACKEND_URL}/execute_query`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ database: PG_DATABASE, query: sql }),
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Query failed");
-                }
-                const rows = payload.rows || [];
-                queryResult.innerHTML = renderQueryTable(rows);
-            } catch (error) {
-                setStatus(queryResult, error.message, true);
-            }
-        }
-
-        function renderMessages(messages) {
-            if (!messages.length) {
-                return "No messages produced.";
-            }
-            return messages
-                .map((message) => {
-                    const name = message.name || message.role;
-                    const content = message.content || JSON.stringify(message.function_call || {});
-                    return `<div class="message"><strong>${name}</strong><br/>${content}</div>`;
-                })
-                .join("");
-        }
-
-        async function handleChat(event) {
-            event.preventDefault();
-            const task = document.getElementById("chat-task").value.trim();
-            if (!task) {
-                setStatus(chatResult, "Describe the task first.", true);
-                return;
-            }
-
-            const dataset = chatDatasetSelect.value || null;
-            setStatus(chatResult, "Contacting agents...");
-            try {
-                const response = await fetch(`${BACKEND_URL}/agents_chat`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ task, database: dataset }),
-                });
-                const payload = await response.json();
-                if (!response.ok) {
-                    throw new Error(payload.detail || "Agents chat failed");
-                }
-                const messages = payload.messages || [];
-                chatResult.innerHTML = `<div class="messages">${renderMessages(messages)}</div>`;
-            } catch (error) {
-                setStatus(chatResult, error.message, true);
-            }
-        }
-
-        document.getElementById("upload-form").addEventListener("submit", handleUpload);
-        document.getElementById("upload-refresh").addEventListener("click", fetchDatasets);
-        document.getElementById("query-form").addEventListener("submit", handleQuery);
-        document.getElementById("chat-form").addEventListener("submit", handleChat);
-        document.getElementById("chat-refresh").addEventListener("click", fetchDatasets);
-        document.getElementById("pg-database").textContent = PG_DATABASE;
-        document.getElementById("upload-chunk").value = DEFAULT_CHUNK_SIZE;
-        document.getElementById("upload-embedding").value = DEFAULT_EMBEDDING_MODEL;
-
-        fetchDatasets();
-    </script>
+      try {
+        result.hidden = false;
+        result.textContent = "Embedding...";
+        const resp = await fetch("/api/v1/vectors/embed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        result.textContent = String(err);
+      }
+    });
+  </script>
 </body>
 </html>

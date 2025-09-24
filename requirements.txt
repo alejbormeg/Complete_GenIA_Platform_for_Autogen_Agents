@@ -6,11 +6,8 @@ python-dotenv==1.0.1
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.25.1
 nltk==3.8.1
-
-# OpenAI SDK + httpx pin to avoid 'proxies' kwarg issue
 openai==1.35.10
 httpx<0.28
-
 spacy==3.7.5
 tiktoken==0.7.0
 tenacity==8.5.0
@@ -19,16 +16,12 @@ pyautogen==0.2.32
 chromadb==0.5.4
 markdownify==0.13.1
 pypdf==4.3.0
-
-# LangChain family
 langchain==0.2.6
 langchain-community==0.2.6
-langchain-openai==0.1.8   # if you hit that 0.1.8 import bug, drop to 0.1.7
+langchain-openai==0.1.8
 langgraph==0.0.55
-
-# Pydantic: loosen to meet LangChain / spaCy / FastAPI expectations
+starlite==1.51.9
 pydantic>=2.7.4,<3
-
 pgvector==0.2.5
 anyio==4.3.0
 python-multipart==0.0.9

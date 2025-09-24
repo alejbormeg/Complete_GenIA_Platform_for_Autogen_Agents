@@ -1,5 +1,5 @@
 services:
-  pgvector:
+  db:
     image: ankane/pgvector:latest
     container_name: pgvector
     restart: unless-stopped
@@ -20,7 +20,7 @@ services:
     container_name: genia-backend
     restart: unless-stopped
     environment:
-      POSTGRESQL_HOST: pgvector
+      POSTGRESQL_HOST: db
       POSTGRESQL_PORT: "5432"
       POSTGRESQL_USER: postgres
       POSTGRESQL_PASSWORD: postgres
@@ -33,7 +33,7 @@ services:
       GPT_EMBEDDING_ENGINE: text-embedding-3-large
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
-      - pgvector
+      - db
     ports:
       - "8001:8001"
 

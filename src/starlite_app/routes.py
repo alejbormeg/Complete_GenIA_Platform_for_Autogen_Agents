@@ -1,9 +1,10 @@
-"""Starlite routes serving the demo frontend."""
+"""Litestar routes serving the demo frontend."""
 
 from __future__ import annotations
 
-from starlite import Provide, Router, get
-from starlite.response import Template
+from litestar import Router, get
+from litestar.di import Provide
+from litestar.response import Template
 
 from .settings import FrontendSettings
 
