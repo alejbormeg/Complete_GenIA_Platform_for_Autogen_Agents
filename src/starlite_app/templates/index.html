@@ -2,143 +2,612 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>RAG UI</title>
+  <title>GenIA Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
+      --bg: #0b1020;
+      --bg-2: #0f172a;
+      --panel: #0f172a;
+      --panel-raised: #17223b;
       --muted: #94a3b8;
-      --accent: #6366f1;
+      --accent: #7c83ff; /* indigo / violet */
+      --accent-2: #22d3ee; /* cyan */
+      --accent-soft: rgba(99,102,241,0.12);
       --text: #e5e7eb;
+      --border: #1f2937;
+      --error: #f87171;
+      --ok: #34d399;
+      --glow: 0 0 0.5rem rgba(124,131,255,.6), 0 0 1.35rem rgba(34,211,238,.25);
     }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      background: var(--bg);
+      background: 
+        radial-gradient(1200px 600px at 10% -10%, rgba(124,131,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 0%, rgba(34,211,238,.14), transparent 60%),
+        conic-gradient(from 220deg at 60% -20%, rgba(124,131,255,.12), transparent 25%, rgba(34,211,238,.08) 40%, transparent 60%, rgba(124,131,255,.1) 75%, transparent 100%),
+        var(--bg);
       color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background-attachment: fixed;
     }
-    .container {
-      max-width: 960px;
-      margin: 2rem auto;
-      padding: 1rem;
+
+    /* subtle animated noise / grain overlay to add depth to gradients */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none' viewBox='0 0 100 100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0 0 0.02 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+      opacity: .35;
+      animation: grain 6s steps(6) infinite;
     }
-    .card {
-      background: var(--panel);
-      border: 1px solid #1f2937;
-      border-radius: 14px;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+
+    @keyframes grain { 0% {transform: translate(0,0);} 10%{transform: translate(-1%, 1%);} 20%{transform: translate(1%, -1%);} 30%{transform: translate(-2%, 1%);} 40%{transform: translate(1%, 2%);} 50%{transform: translate(0,0);} 60%{transform: translate(1%, -2%);} 70%{transform: translate(-1%, 2%);} 80%{transform: translate(2%, -1%);} 90%{transform: translate(-2%, 1%);} 100%{transform: translate(0,0);} }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
     }
-    h1 {
-      margin: 0 0 1rem 0;
-      font-size: 1.25rem;
+
+    .app { width: min(1180px, 94vw); margin: 3.2rem 0 5rem; }
+
+    /* ====== Top App Bar / Branding ====== */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; margin-bottom: 1.25rem; padding: .6rem .2rem;
     }
-    p.muted { color: var(--muted); }
-    form { display: grid; gap: .75rem; margin-top: 1rem; }
-    label { font-weight: 600; }
-    input[type="text"], input[type="number"], select, textarea {
-      width: 100%;
-      padding: .65rem .75rem;
-      border-radius: 10px;
-      border: 1px solid #374151;
-      background: #0b1220;
-      color: var(--text);
-      outline: none;
+    .brand { display: flex; align-items: center; gap: .8rem; }
+    .brand-logo {
+      width: 38px; height: 38px; border-radius: 12px;
+      background:
+        radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.22), transparent 40%),
+        linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: var(--glow);
+      position: relative; isolation: isolate;
     }
-    textarea { min-height: 140px; resize: vertical; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .brand-logo::after {
+      content: ""; position: absolute; inset: 0; border-radius: 12px;
+      backdrop-filter: blur(2px) saturate(130%);
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.02));
+      mix-blend-mode: screen; opacity: .8;
+    }
+    .brand h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: .02em; }
+    .chiprow { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chip {
+      border: 1px solid rgba(124,131,255,.35);
+      background: rgba(124,131,255,.08);
+      padding: .28rem .6rem; border-radius: 999px; font-size: .78rem; color: #c7d2fe;
+    }
+
+    h1, h2, h3 { margin: 0; font-weight: 700; }
+    p.muted, span.muted { color: var(--muted); }
+
+    /* ====== Buttons ====== */
     button {
-      background: var(--accent);
-      color: white;
-      border: 0;
-      padding: .7rem 1rem;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s ease-in-out;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b1020; border: none; padding: 0.75rem 1.15rem; border-radius: 14px;
+      font-weight: 800; cursor: pointer; letter-spacing: .02em;
+      transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease, filter 140ms ease;
+      box-shadow: var(--glow);
     }
-    button:hover {
-      opacity: .9;
+    button:hover { transform: translateY(-1.5px) scale(1.01); box-shadow: 0 10px 28px rgba(124,131,255,.35); }
+    button:active { transform: translateY(0); filter: saturate(120%); }
+    button.secondary {
+      background: rgba(10,16,32,.6);
+      color: var(--muted);
+      border: 1px solid rgba(124,131,255,.35);
+      box-shadow: none;
     }
-    .hint { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
-    .output { margin-top: 1rem; white-space: pre-wrap; background: #0b1220; border-radius: 10px; padding: .75rem; border: 1px solid #374151; }
+    button.secondary:hover { color: #fff; border-color: var(--accent-2); opacity: 0.95; }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%; padding: 0.7rem .9rem; border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(9,14,26,.8);
+      color: var(--text); outline: none; font-size: .96rem;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+    input:focus, select:focus, textarea:focus { border-color: rgba(124,131,255,.6); box-shadow: 0 0 0 3px rgba(124,131,255,.18); }
+    textarea { min-height: 140px; resize: vertical; }
+
+    .helper { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* ====== Cards (glassmorphism-ish) ====== */
+    .card {
+      position: relative;
+      background: linear-gradient(180deg, rgba(12,17,34,.85), rgba(12,17,34,.7));
+      border: 1px solid rgba(148,163,184,.12);
+      border-radius: 20px; padding: 1.45rem 1.6rem; box-shadow: 0 30px 60px rgba(5,10,20,.55);
+      backdrop-filter: blur(8px) saturate(120%);
+    }
+    .card::before { /* subtle border glow */
+      content: ""; position: absolute; inset: -1px; border-radius: 21px; pointer-events: none;
+      background: linear-gradient(135deg, rgba(124,131,255,.35), rgba(34,211,238,.25));
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude; -webkit-mask-composite: xor;
+      padding: 1px; opacity: .25;
+    }
+
+    .screen { display: none; animation: fade-in 160ms ease; }
+    .screen.active { display: block; }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+
+    .screen-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+
+    .menu-card { text-align: center; padding: 2.2rem 1.2rem; }
+    .menu-actions { display: grid; gap: 1.25rem; margin-top: 2rem; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); }
+
+    .option { display: grid; gap: .85rem; padding: 1.6rem; text-align: left; background: linear-gradient(180deg, rgba(23,34,59,.95), rgba(23,34,59,.75)); border: 1px solid rgba(124,131,255,.24); border-radius: 18px; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .option:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(124,131,255,.22); }
+    .option h3 { font-size: 1.12rem; }
+
+    .back-row { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+    .back-row button { padding: .38rem .8rem; border-radius: 999px; font-size: .86rem; }
+
+    .grid-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+
+    .action-block { display: grid; gap: .55rem; align-content: start; }
+    .action-block span { font-weight: 700; }
+
+    .upload-drop {
+      border: 1px dashed rgba(124,131,255,.6);
+      border-radius: 16px; padding: 1.6rem; text-align: center; background: rgba(124,131,255,.08);
+      display: grid; gap: .8rem; font-size: .95rem;
+    }
+    .upload-drop strong { display: block; font-weight: 700; }
+
+    .status-card { margin-top: 1.2rem; padding: 1rem; border-radius: 12px; background: rgba(11,18,32,.85); border: 1px solid rgba(148,163,184,.12); white-space: pre-wrap; font-size: .9rem; }
+
+    /* ====== Chat layout ====== */
+    .chat-layout { display: grid; gap: 1.2rem; }
+    @media (min-width: 960px) { .chat-layout { grid-template-columns: 1.6fr 1fr; } }
+    .chat-panel { display: grid; gap: 1rem; }
+
+    .chat-history { max-height: 460px; overflow-y: auto; padding: 1rem; border-radius: 14px; background: rgba(15,23,42,.8); border: 1px solid rgba(31,41,55,.9); }
+
+    .message { margin-bottom: 1rem; padding: .75rem; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(148,163,184,.14); }
+    .message:last-child { margin-bottom: 0; }
+    .message strong { font-size: .88rem; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); }
+    .message-content { margin-top: .45rem; font-size: .96rem; line-height: 1.5; }
+
+    /* token stream accent on last assistant message */
+    .message.assistant .message-content span.token { display: inline-block; min-width: 0.28ch; border-right: 1px solid rgba(124,131,255,.8); animation: caret 900ms steps(1) infinite; }
+    @keyframes caret { 50% { border-right-color: transparent; } }
+
+    .side-panel { display: grid; gap: 1rem; }
+
+    .sql-preview, .sql-results {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .86rem; background: rgba(9,14,26,.92); border-radius: 12px; border: 1px solid rgba(124,131,255,.25); padding: .9rem; white-space: pre-wrap; overflow-x: auto;
+    }
+
+    .sql-row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .6rem; }
+    .sql-actions { display: flex; gap: .5rem; }
+
+    table.sql-table { width: 100%; border-collapse: collapse; margin-top: .6rem; font-size: .85rem; }
+    table.sql-table th, table.sql-table td { border: 1px solid rgba(148,163,184,.18); padding: .5rem .6rem; text-align: left; }
+    table.sql-table th { background: rgba(124,131,255,.12); color: var(--text); }
+
+    .error { color: var(--error); }
+    .loading { opacity: .75; }
+    .flex { display: flex; gap: .65rem; align-items: center; }
+
+    footer { margin-top: 1rem; display: flex; justify-content: center; }
+    .mini { font-size: .78rem; color: var(--muted); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>RAG Console</h1>
-      <p class="muted">Upload text, embed, and chat with your data.</p>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <h1>GenIA Platform</h1>
+      </div>
+      <div class="chiprow" role="list">
+        <div class="chip" role="listitem">LLM Agents</div>
+        <div class="chip" role="listitem">RAG / pgvector</div>
+        <div class="chip" role="listitem">SQL Copilot</div>
+      </div>
+    </header>
 
-      <form id="embed-form">
-        <div class="row">
-          <div>
-            <label for="chunk_size">Chunk Size</label>
-            <input id="chunk_size" name="chunk_size" type="number" min="1" value="{{ default_chunk_size }}" />
-            <div class="hint">Size used for text chunking and embedding dimensions.</div>
+    <section id="screen-menu" class="screen active">
+      <div class="card menu-card">
+        <h2>Supercharge your data with Generative AI</h2>
+        <p class="muted">Choose how you want to work with your data today.</p>
+        <div class="menu-actions">
+          <article class="option">
+            <div>
+              <h3>Vectorize Markdown Content</h3>
+              <p class="muted">Upload a markdown knowledge source, chunk it, and store embeddings directly into Postgres/pgvector.</p>
+            </div>
+            <button data-screen="screen-vectorize">Start Vectorizing</button>
+          </article>
+          <article class="option">
+            <div>
+              <h3>Natural Language to SQL Agents</h3>
+              <p class="muted">Chat with the agentic huddle, inspect intermediate reasoning, and review the executed SQL results.</p>
+            </div>
+            <button data-screen="screen-sql">Open Agentic Workspace</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-vectorize" class="screen">
+      <div class="back-row">
+        <button class="secondary" data-screen="screen-menu">← Main Menu</button>
+        <span class="muted">Vectorize Markdown Document</span>
+      </div>
+      <div class="card">
+        <div class="screen-header">
+          <h2>Upload &amp; Embed</h2>
+          <span class="muted">Configure chunking and embedding model</span>
+        </div>
+        <form id="vector-form">
+          <div class="upload-drop">
+            <strong>Select a markdown file (.md or .markdown)</strong>
+            <input id="markdown-file" type="file" accept=".md,.markdown,.txt" />
+            <p id="file-status" class="muted">No file selected yet.</p>
           </div>
-          <div>
-            <label for="embedding_model">Embedding Model</label>
-            <select id="embedding_model" name="embedding_model">
-              <option value="{{ embedding_model }}" selected>{{ embedding_model }}</option>
-              <option value="text-embedding-3-small">text-embedding-3-small</option>
-              <option value="text-embedding-3-large">text-embedding-3-large</option>
-            </select>
-            <div class="hint">OpenAI text-embedding-3 models support a custom <code>dimensions</code> value.</div>
+          <div class="grid-two">
+            <label>
+              Chunk Size
+              <input id="vector-chunk" name="chunk_size" type="number" min="1" value="{{ default_chunk_size }}" />
+              <div class="helper">Determines how content is segmented for embedding.</div>
+            </label>
+            <label>
+              Embedding Model
+              <select id="vector-model" name="embedding_model">
+                <option value="{{ embedding_model }}" selected>{{ embedding_model }}</option>
+                <option value="text-embedding-3-small">text-embedding-3-small</option>
+                <option value="text-embedding-3-large">text-embedding-3-large</option>
+              </select>
+              <div class="helper">OpenAI text-embedding-3 models accept custom dimensions.</div>
+            </label>
           </div>
+          <label>
+            Logical Database Label (optional)
+            <input id="vector-db" name="database" type="text" placeholder="ex: knowledge_base_markdown" value="{{ pg_database or '' }}" />
+            <div class="helper">Used to group embeddings inside Postgres. Leave blank to auto-generate.</div>
+          </label>
+          <div class="flex">
+            <button type="submit">Vectorize Document</button>
+            <span id="vector-message" class="muted"></span>
+          </div>
+        </form>
+        <div id="vector-output" class="status-card" hidden></div>
+      </div>
+    </section>
+
+    <section id="screen-sql" class="screen">
+      <div class="back-row">
+        <button class="secondary" data-screen="screen-menu">← Main Menu</button>
+        <span class="muted">Natural Language → SQL Agentic Chat</span>
+      </div>
+      <div class="chat-layout">
+        <div class="card chat-panel">
+          <div>
+            <h2>Ask the Agents</h2>
+            <p class="muted">Describe what you need; the agentic huddle will craft the SQL and reasoning chain.</p>
+          </div>
+          <form id="chat-form">
+            <label>
+              Your Question
+              <textarea id="chat-input" placeholder="ex: What was the total revenue by region last quarter?"></textarea>
+            </label>
+            <div class="grid-two">
+              <label>
+                Target Database
+                <select id="chat-database"></select>
+                <div class="helper">Pick the data source agents should reason over.</div>
+              </label>
+              <div class="action-block">
+                <span>Refresh Sources</span>
+                <button id="refresh-databases" type="button" class="secondary">Reload Databases</button>
+                <div class="helper">Pull the current list of vector-backed databases.</div>
+              </div>
+            </div>
+            <div class="flex">
+              <button type="submit">Send to Agents</button>
+              <span id="chat-status" class="muted"></span>
+            </div>
+          </form>
+          <section>
+            <h3>Agentic Huddle</h3>
+            <div id="chat-messages" class="chat-history"></div>
+          </section>
         </div>
 
-        <div>
-          <label for="database">Logical Database Label (optional)</label>
-          <input id="database" name="database" type="text" placeholder="ex: sales_2024_q3" value="{{ pg_database or '' }}" />
-        </div>
+        <aside class="side-panel">
+          <div class="card">
+            <div class="sql-row">
+              <h3>Generated SQL</h3>
+              <div class="sql-actions">
+                <button id="copy-sql" class="secondary" type="button">Copy</button>
+              </div>
+            </div>
+            <div id="sql-preview" class="sql-preview" hidden></div>
+          </div>
+          <div class="card">
+            <h3>Query Result</h3>
+            <div id="sql-results" class="sql-results" hidden></div>
+          </div>
+        </aside>
+      </div>
+    </section>
 
-        <div>
-          <label for="text">Text</label>
-          <textarea id="text" name="text" placeholder="Paste content to embed..."></textarea>
-        </div>
-
-        <div>
-          <button type="submit">Embed</button>
-        </div>
-      </form>
-
-      <div id="result" class="output" hidden></div>
-    </div>
-  </div>
+    <footer>
+      <p class="mini">Built with ❤️ for Generative AI workflows • <span id="connectivity" aria-live="polite">Checking backend…</span></p>
+    </footer>
+  </main>
 
   <script>
+    const API_BASE = ("{{ backend_url }}" || "").replace(/\/$/, "");
     const DEFAULT_CHUNK_SIZE = {{ default_chunk_size }};
     const PG_DATABASE = "{{ pg_database }}";
     const DEFAULT_EMBEDDING_MODEL = "{{ embedding_model }}";
 
-    const result = document.getElementById("result");
-    document.getElementById("embed-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const payload = {
-        chunk_size: Number(document.getElementById("chunk_size").value || DEFAULT_CHUNK_SIZE),
-        embedding_model: document.getElementById("embedding_model").value || DEFAULT_EMBEDDING_MODEL,
-        database: document.getElementById("database").value || null,
-        text: document.getElementById("text").value || ""
+    const screens = document.querySelectorAll('.screen');
+    const menuButtons = document.querySelectorAll('button[data-screen]');
+
+    function activateScreen(id) {
+      screens.forEach((screen) => screen.classList.toggle('active', screen.id === id));
+    }
+    menuButtons.forEach((button) => button.addEventListener('click', () => activateScreen(button.dataset.screen)));
+
+    // Connectivity check (for a friendlier first impression)
+    const connectivityEl = document.getElementById('connectivity');
+    (async () => {
+      if (!API_BASE) { connectivityEl.textContent = 'No backend URL configured'; return; }
+      try {
+        const res = await fetch(`${API_BASE}/health`).catch(() => null);
+        connectivityEl.textContent = res && res.ok ? 'Backend connected' : 'Backend not reachable';
+      } catch { connectivityEl.textContent = 'Backend not reachable'; }
+    })();
+
+    // -------- Vectorization Flow --------
+    const vectorForm = document.getElementById('vector-form');
+    const vectorOutput = document.getElementById('vector-output');
+    const vectorMessage = document.getElementById('vector-message');
+    const markdownInput = document.getElementById('markdown-file');
+    const fileStatus = document.getElementById('file-status');
+    let fileTextCache = '';
+
+    markdownInput.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      fileTextCache = '';
+      if (!file) { fileStatus.textContent = 'No file selected yet.'; return; }
+      const name = file.name.toLowerCase();
+      if (!name.endsWith('.md') && !name.endsWith('.markdown') && !name.endsWith('.txt')) {
+        fileStatus.textContent = 'Please choose a markdown (.md) file.'; return;
+      }
+      fileStatus.textContent = `Loading ${file.name}…`;
+      const reader = new FileReader();
+      reader.onload = () => {
+        fileTextCache = reader.result?.toString() ?? '';
+        const wordCount = fileTextCache.split(/\s+/).filter(Boolean).length;
+        fileStatus.textContent = `Loaded ${file.name} • ${wordCount} words`;
       };
+      reader.onerror = () => { fileStatus.textContent = 'Failed to read file. Please try again.'; };
+      reader.readAsText(file);
+    });
+
+    vectorForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      vectorMessage.textContent = '';
+      vectorOutput.hidden = true;
+      vectorMessage.classList.remove('error');
+
+      if (!fileTextCache.trim()) {
+        vectorMessage.textContent = 'Please upload a markdown document first.';
+        vectorMessage.classList.add('error');
+        return;
+      }
+
+      const chunkSize = Number(document.getElementById('vector-chunk').value || DEFAULT_CHUNK_SIZE);
+      const model = document.getElementById('vector-model').value || DEFAULT_EMBEDDING_MODEL;
+      const databaseRaw = document.getElementById('vector-db').value.trim();
+      const database = databaseRaw.length ? databaseRaw : null;
+
+      const payload = { text: fileTextCache, chunk_size: chunkSize, embedding_model: model, database };
+
+      vectorForm.classList.add('loading');
+      vectorMessage.textContent = 'Vectorizing document…';
 
       try {
-        result.hidden = false;
-        result.textContent = "Embedding...";
-        const resp = await fetch("/api/v1/vectors/embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+        const response = await fetch(`${API_BASE}/text_to_vectordb`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
         });
-        const data = await resp.json();
-        result.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        result.textContent = String(err);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.detail || 'Failed to vectorize document');
+
+        const details = [
+          `Database: ${data.database || 'auto-generated'}`,
+          `Chunk size: ${data.chunk_size}`,
+          `Records inserted: ${data.records}`,
+        ].join('\n');
+
+        vectorOutput.textContent = details;
+        vectorOutput.hidden = false;
+        vectorMessage.textContent = 'Embedding complete.';
+        vectorMessage.classList.remove('error');
+      } catch (error) {
+        console.error(error);
+        vectorMessage.classList.add('error');
+        vectorMessage.textContent = error instanceof Error ? error.message : 'Unexpected error while vectorizing.';
+      } finally {
+        vectorForm.classList.remove('loading');
       }
     });
+
+    // -------- Agentic Chat Flow --------
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatDatabase = document.getElementById('chat-database');
+    const refreshDatabasesButton = document.getElementById('refresh-databases');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatStatus = document.getElementById('chat-status');
+    const sqlPreview = document.getElementById('sql-preview');
+    const sqlResults = document.getElementById('sql-results');
+    const copySqlBtn = document.getElementById('copy-sql');
+
+    refreshDatabasesButton.addEventListener('click', loadDatabases);
+    copySqlBtn.addEventListener('click', () => {
+      if (sqlPreview.hidden) return;
+      navigator.clipboard.writeText(sqlPreview.textContent || '').then(() => {
+        copySqlBtn.textContent = 'Copied!';
+        setTimeout(() => (copySqlBtn.textContent = 'Copy'), 1200);
+      });
+    });
+
+    async function loadDatabases() {
+      chatStatus.textContent = 'Refreshing databases…';
+      try {
+        const response = await fetch(`${API_BASE}/vector_databases?chunk_size=${DEFAULT_CHUNK_SIZE}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.detail || 'Failed to fetch databases');
+
+        chatDatabase.innerHTML = '';
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Auto-select based on agent context';
+        chatDatabase.appendChild(defaultOption);
+
+        for (const db of data.databases || []) {
+          const option = document.createElement('option');
+          option.value = db; option.textContent = db; if (db === PG_DATABASE) option.selected = true;
+          chatDatabase.appendChild(option);
+        }
+        chatStatus.textContent = data.databases?.length ? `Loaded ${data.databases.length} databases.` : 'No databases found yet.';
+      } catch (error) {
+        console.error(error);
+        chatStatus.textContent = error instanceof Error ? error.message : 'Error while loading databases.';
+      }
+    }
+
+    function renderMessages(messages) {
+      chatMessages.innerHTML = '';
+      if (!messages?.length) {
+        chatMessages.innerHTML = '<p class="muted">No messages yet. Submit a query to start the conversation.</p>';
+        return;
+      }
+      for (const message of messages) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message ' + (message.role === 'assistant' ? 'assistant' : '');
+
+        const heading = document.createElement('strong');
+        const label = message.name ? `${message.role} • ${message.name}` : message.role;
+        heading.textContent = label.toUpperCase();
+        wrapper.appendChild(heading);
+
+        const fragment = document.createElement('div');
+        fragment.className = 'message-content';
+        if (message.content) {
+          const txt = message.content.trim();
+          fragment.innerHTML = (message.role === 'assistant') ? `${txt} <span class="token"></span>` : txt;
+        } else if (message.function_call) {
+          fragment.textContent = JSON.stringify(message.function_call, null, 2);
+        } else {
+          fragment.textContent = '[no content]';
+        }
+        wrapper.appendChild(fragment);
+        chatMessages.appendChild(wrapper);
+      }
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function extractSql(messages) {
+      if (!messages?.length) return null;
+      for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
+        const message = messages[idx];
+        if (message.function_call?.arguments) {
+          try {
+            const args = JSON.parse(message.function_call.arguments);
+            if (typeof args.query === 'string' && args.query.trim().length) return args.query.trim();
+            if (typeof args.sql === 'string' && args.sql.trim().length) return args.sql.trim();
+          } catch (error) { console.warn('Failed to parse function call arguments', error); }
+        }
+        if (typeof message.content === 'string') {
+          const blockMatch = message.content.match(/```sql\s*([\s\S]+?)```/i);
+          if (blockMatch) return blockMatch[1].trim();
+          const selectMatch = message.content.match(/(SELECT[\s\S]+?)(?:;|$)/i);
+          if (selectMatch) return selectMatch[1].trim();
+        }
+      }
+      return null;
+    }
+
+    function renderSqlTable(rows) {
+      sqlResults.innerHTML = '';
+      if (!rows?.length) { sqlResults.textContent = 'Query executed. No rows returned.'; sqlResults.hidden = false; return; }
+      const maxColumns = rows.reduce((m, r) => Math.max(m, r.length), 0);
+      const table = document.createElement('table'); table.className = 'sql-table';
+      const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
+      for (let col = 0; col < maxColumns; col += 1) { const th = document.createElement('th'); th.textContent = `col_${col + 1}`; headerRow.appendChild(th); }
+      thead.appendChild(headerRow); table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      for (const row of rows) { const tr = document.createElement('tr'); for (let col = 0; col < maxColumns; col += 1) { const td = document.createElement('td'); const value = row[col]; td.textContent = value == null ? '∅' : String(value); tr.appendChild(td);} tbody.appendChild(tr);} table.appendChild(tbody);
+      sqlResults.appendChild(table); sqlResults.hidden = false;
+    }
+
+    async function executeQuery(sql, database) {
+      const payload = { query: sql, database: database || null };
+      const response = await fetch(`${API_BASE}/execute_query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.detail || 'Failed to execute SQL query');
+      return data.rows;
+    }
+
+    chatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      chatStatus.textContent = '';
+      sqlPreview.hidden = true; sqlResults.hidden = true;
+
+      const prompt = chatInput.value.trim();
+      if (!prompt) { chatStatus.textContent = 'Please provide a question for the agents.'; return; }
+
+      const databaseValue = chatDatabase.value.trim();
+      const payload = { task: prompt, database: databaseValue.length ? databaseValue : null };
+
+      chatForm.classList.add('loading');
+      chatStatus.textContent = 'Agents are thinking…';
+
+      try {
+        const response = await fetch(`${API_BASE}/agents_chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.detail || 'Agentic chat failed');
+
+        renderMessages(data.messages);
+        chatStatus.textContent = 'Conversation updated.';
+
+        const sql = extractSql(data.messages);
+        if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'No SQL detected in agent response yet.'; sqlResults.hidden = true; return; }
+
+        sqlPreview.hidden = false; sqlPreview.textContent = sql;
+        try { const rows = await executeQuery(sql, payload.database); renderSqlTable(rows); }
+        catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
+      } catch (error) {
+        console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';
+      } finally { chatForm.classList.remove('loading'); }
+    });
+
+    // Initialize default UI state
+    loadDatabases();
+    renderMessages([]);
   </script>
 </body>
 </html>
