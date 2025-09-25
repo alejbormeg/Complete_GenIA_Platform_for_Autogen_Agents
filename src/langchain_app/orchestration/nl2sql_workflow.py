@@ -100,12 +100,10 @@ class NL2SQLWorkflow:
     ) -> NL2SQLResult:
         """Async wrapper compatible with Starlite."""
 
-        return await anyio.to_thread.run_sync(
-            self.run,
-            question,
-            database=database,
-            top_k=top_k,
-        )
+        from functools import partial
+
+        runner = partial(self.run, question, database=database, top_k=top_k)
+        return await anyio.to_thread.run_sync(runner)
 
 
 def _format_context(retrievals: List[RetrievalResult]) -> str:

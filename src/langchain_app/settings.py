@@ -7,7 +7,7 @@ import os
 from typing import Optional
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class LangChainAppSettings:
     """Configuration required to run the LangChain NL2SQL workflow."""
 

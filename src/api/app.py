@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import json
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import WebSocket, WebSocketDisconnect
 
 from . import schemas
 from .services import AppServices, build_services
@@ -163,3 +165,53 @@ async def upload_pdf(
         database=database,
         detail="Document uploaded successfully",
     )
+
+
+@app.websocket("/ws/agents_chat")
+async def ws_agents_chat(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            # Espera un mensaje JSON: {"task": "...", "database": "opcional"}
+            raw = await ws.receive_text()
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                await ws.send_json({"type": "error", "message": "JSON inválido"})
+                continue
+
+            task = (payload.get("task") or "").strip()
+            database = payload.get("database")
+
+            if not task:
+                await ws.send_json({"type": "error", "message": "Falta 'task'"})
+                continue
+
+            # Recupera el contenedor de servicios creado en startup
+            services = getattr(app.state, "services", None)
+            if services is None:
+                await ws.send_json({"type": "error", "message": "Servicios no listos"})
+                continue
+
+            # Cabecera de inicio
+            await ws.send_json({"type": "start", "mode": "agents"})
+
+            # Ejecuta tu mismo flujo NL→SQL y devuelve mensajes "uno a uno"
+            try:
+                messages = await services.agents_chat_service.call_rag_chat(task, database)
+                # messages es una lista de dicts con: role, name, content, function_call (según tu esquema)
+                for msg in messages:
+                    await ws.send_json({"type": "message", "data": msg})
+                await ws.send_json({"type": "end"})
+            except Exception as e:
+                await ws.send_json({"type": "error", "message": f"{e}"})
+
+    except WebSocketDisconnect:
+        # El cliente cerró la conexión
+        return
+    except Exception as e:
+        # Error inesperado
+        try:
+            await ws.send_json({"type": "error", "message": str(e)})
+        finally:
+            await ws.close(code=1011)

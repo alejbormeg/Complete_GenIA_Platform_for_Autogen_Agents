@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
@@ -11,6 +12,9 @@ from langchain_core.vectorstores import VectorStoreRetriever
 
 from ..embeddings import get_embeddings
 from ..settings import LangChainAppSettings
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -68,10 +72,11 @@ class PGVectorStore:
     ) -> List[RetrievalResult]:
         """Perform a semantic search over the stored embeddings."""
 
-        retriever = self.as_retriever(database=database, top_k=top_k)
         try:
+            retriever = self.as_retriever(database=database, top_k=top_k)
             documents: Iterable[Document] = retriever.invoke(query)
-        except Exception:  # pragma: no cover - best effort fallback for offline environments
+        except Exception as exc:  # pragma: no cover - best effort fallback for offline environments
+            logger.warning("Vector store unavailable, proceeding without context: %s", exc)
             return []
         results: List[RetrievalResult] = []
         for doc in documents:
