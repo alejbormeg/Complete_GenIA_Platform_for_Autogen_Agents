@@ -417,9 +417,7 @@ class PGVectorService:
 
         def _insert() -> int:
             dimension = self._table_vector_dimension_sync(name)
-            print(f"Dimension for table {name}: {dimension}")
             columns = self._table_columns_sync(name)
-            print(f"Columns for table {name}: {columns}")
             if "embedding" not in columns:
                 raise ValueError(
                     f"Table '{name}' does not include an 'embedding' column required for vector operations"
@@ -427,7 +425,7 @@ class PGVectorService:
             has_database_column = "database" in columns
             statement = sql.SQL(
                 """
-                INSERT INTO {table} (entity_id, embedding, text{database_column})
+                INSERT INTO public.{table} (entity_id, embedding, text{database_column})
                 VALUES (%s, %s, %s{database_placeholder})
                 """
             ).format(
@@ -436,26 +434,35 @@ class PGVectorService:
                 database_placeholder=sql.SQL(", %s") if has_database_column else sql.SQL(""),
             )
 
+            print(f"SQL query: {statement.as_string(self.conn)}")
             inserted = 0
             with self.conn.cursor() as cur:
                 for record in vectors:
-                    embedding = record.get("embedding")
-                    print(f"Embedding for record {record.get('entity_id')}: {len(embedding)}")
-                    if embedding is not None:
-                        embedding = list(embedding)
-                    if dimension and embedding is not None and len(embedding) != dimension:
-                        raise ValueError(
-                            f"Embedding dimension mismatch for table '{name}': expected {dimension}, got {len(embedding)}"
-                        )
-                    params: List[Any] = [
-                        record.get("entity_id"),
-                        embedding,
-                        record.get("text"),
-                    ]
-                    if has_database_column:
-                        params.append(record.get("database") or name)
-                    cur.execute(statement, params)
-                    inserted += 1
+                    try:
+                        embedding = record.get("embedding")
+                        if embedding is not None:
+                            # Ensure embedding is a list of floats
+                            embedding = [float(x) for x in embedding]
+                        if dimension and embedding is not None and len(embedding) != dimension:
+                            raise ValueError(
+                                f"Embedding dimension mismatch for table '{name}': expected {dimension}, got {len(embedding)}"
+                            )
+                        params: List[Any] = [
+                            record.get("entity_id"),
+                            embedding,
+                            record.get("text"),
+                        ]
+                        if has_database_column:
+                            # Use record["database"] if present, else None (NULL in DB)
+                            params.append(record.get("database"))
+                        print(f"SQL params: {params}")
+                        cur.execute(statement, params)
+                        # Run select command to confirm insertion
+                        cur.execute(f"SELECT * FROM {name} WHERE entity_id = %s", (record.get("entity_id"),))
+                        print(f"Inserted record: {cur.fetchall()}")
+                        inserted += 1
+                    except Exception as exc:
+                        logger.error(f"Failed to insert vector record: {record}, error: {exc}")
             self.conn.commit()
             return inserted
 
