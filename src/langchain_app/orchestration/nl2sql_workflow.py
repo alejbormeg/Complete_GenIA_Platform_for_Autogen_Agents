@@ -22,7 +22,7 @@ class NL2SQLResult:
     """Structured response produced by the LangChain workflow."""
 
     question: str
-    database: Optional[str]
+    table: Optional[str]
     plan: str
     sql_query: str
     feedback: str
@@ -49,14 +49,14 @@ class NL2SQLWorkflow:
         self,
         question: str,
         *,
-        database: Optional[str] = None,
+        table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> NL2SQLResult:
         """Execute the orchestration synchronously."""
 
         retrievals = self.vector_store.similarity_search(
             question,
-            database=database,
+            table=table,
             top_k=top_k,
         )
         context = _format_context(retrievals)
@@ -77,7 +77,7 @@ class NL2SQLWorkflow:
 
         return NL2SQLResult(
             question=question,
-            database=database,
+            table=table,
             plan=plan.strip(),
             sql_query=sql_query.strip(),
             feedback=feedback.strip(),
@@ -95,14 +95,14 @@ class NL2SQLWorkflow:
         self,
         question: str,
         *,
-        database: Optional[str] = None,
+        table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> NL2SQLResult:
         """Async wrapper compatible with Starlite."""
 
         from functools import partial
 
-        runner = partial(self.run, question, database=database, top_k=top_k)
+        runner = partial(self.run, question, table=table, top_k=top_k)
         return await anyio.to_thread.run_sync(runner)
 
 

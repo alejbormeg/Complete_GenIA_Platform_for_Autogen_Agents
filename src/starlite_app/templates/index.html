@@ -421,9 +421,9 @@
       const chunkSize = Number(document.getElementById('vector-chunk').value || DEFAULT_CHUNK_SIZE);
       const model = document.getElementById('vector-model').value || DEFAULT_EMBEDDING_MODEL;
       const databaseRaw = document.getElementById('vector-db').value.trim();
-      const database = databaseRaw.length ? databaseRaw : null;
+      const table = databaseRaw.length ? databaseRaw : null;
 
-      const payload = { text: fileTextCache, chunk_size: chunkSize, embedding_model: model, database };
+      const payload = { text: fileTextCache, chunk_size: chunkSize, embedding_model: model, table };
 
       vectorForm.classList.add('loading');
       vectorMessage.textContent = 'Vectorizing document…';
@@ -436,7 +436,7 @@
         if (!response.ok) throw new Error(data?.detail || 'Failed to vectorize document');
 
         const details = [
-          `Database: ${data.database || 'auto-generated'}`,
+          `Table: ${data.table || 'auto-selected'}`,
           `Chunk size: ${data.chunk_size}`,
           `Records inserted: ${data.records}`,
         ].join('\n');
@@ -487,12 +487,13 @@
         defaultOption.textContent = 'Auto-select based on agent context';
         chatDatabase.appendChild(defaultOption);
 
-        for (const db of data.databases || []) {
+        const tables = data.tables || data.databases || [];
+        for (const tableName of tables) {
           const option = document.createElement('option');
-          option.value = db; option.textContent = db; if (db === PG_DATABASE) option.selected = true;
+          option.value = tableName; option.textContent = tableName; if (tableName === PG_DATABASE) option.selected = true;
           chatDatabase.appendChild(option);
         }
-        chatStatus.textContent = data.databases?.length ? `Loaded ${data.databases.length} databases.` : 'No databases found yet.';
+        chatStatus.textContent = tables.length ? `Loaded ${tables.length} tables.` : 'No tables found yet.';
       } catch (error) {
         console.error(error);
         chatStatus.textContent = error instanceof Error ? error.message : 'Error while loading databases.';

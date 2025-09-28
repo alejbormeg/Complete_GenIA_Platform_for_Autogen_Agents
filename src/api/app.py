@@ -68,16 +68,17 @@ async def compute_vectors(
 
 @app.get("/vector_databases", response_model=schemas.VectorDatabasesResponse)
 async def vector_databases(
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    chunk_size: int | None = DEFAULT_CHUNK_SIZE,
     services: AppServices = Depends(get_services),
 ) -> schemas.VectorDatabasesResponse:
+    _ = chunk_size  # legacy compatibility; value is ignored in the new implementation
     try:
-        databases = await services.pgvector_service.list_vector_databases(chunk_size)
+        tables = await services.pgvector_service.list_tables()
     except Exception as exc:
         logger.exception("Failed to list vector databases")
         raise HTTPException(status_code=502, detail=f"Failed to fetch databases: {exc}")
 
-    return schemas.VectorDatabasesResponse(chunk_size=chunk_size, databases=databases)
+    return schemas.VectorDatabasesResponse(tables=tables)
 
 
 @app.post("/text_to_vectordb", response_model=schemas.TextToVectorDbResponse)
@@ -86,23 +87,32 @@ async def text_to_vectordb(
     services: AppServices = Depends(get_services),
 ) -> schemas.TextToVectorDbResponse:
     try:
+        dimension = await services.pgvector_service.ensure_table(
+            payload.table,
+            payload.chunk_size,
+        )
         vectors = await services.vector_service.compute_vectors(
             payload.text,
             payload.chunk_size,
             payload.embedding_model,
+            dimensions=dimension,
         )
-        stored = await services.pgvector_service.insert_vectors(
-            payload.chunk_size,
-            vectors,
-            payload.database,
-        )
+        # Ensure dimensions match
+        for vec in vectors:
+            if len(vec["embedding"]) != dimension:
+                raise ValueError(
+                    f"Computed vector has {len(vec['embedding'])} dimensions, expected {dimension}"
+                )
+        stored = await services.pgvector_service.insert_vectors(payload.table, vectors)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("Failed to store vectors in pgvector")
         raise HTTPException(status_code=502, detail=f"Failed to store vectors: {exc}")
 
     return schemas.TextToVectorDbResponse(
         chunk_size=payload.chunk_size,
-        database=payload.database,
+        table=payload.table,
         records=stored,
     )
 
@@ -115,7 +125,7 @@ async def agents_chat(
     try:
         messages = await services.agents_chat_service.call_rag_chat(
             payload.task,
-            payload.database,
+            payload.table,
         )
     except Exception as exc:
         logger.exception("Agents chat failed")
@@ -132,12 +142,22 @@ async def execute_query(
     services: AppServices = Depends(get_services),
 ) -> schemas.ExecuteQueryResponse:
     try:
-        rows = await services.pgvector_service.execute_query(payload.database, payload.query)
+        rows = await services.pgvector_service.execute_query(
+            payload.database,
+            payload.query,
+            table=payload.table,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("Failed to execute query")
         raise HTTPException(status_code=502, detail=f"Failed to execute query: {exc}")
 
-    return schemas.ExecuteQueryResponse(database=payload.database, rows=rows)
+    return schemas.ExecuteQueryResponse(
+        database=payload.database,
+        table=payload.table,
+        rows=rows,
+    )
 
 
 @app.post("/upload_pdf", response_model=schemas.UploadPdfResponse)
@@ -145,7 +165,7 @@ async def upload_pdf(
     file: UploadFile,
     chunk_size: int = Form(...),
     embedding_model: str = Form(...),
-    database: str | None = Form(default=None),
+    table: str = Form(..., alias="database"),
     services: AppServices = Depends(get_services),
 ) -> schemas.UploadPdfResponse:
     data = await file.read()
@@ -154,15 +174,23 @@ async def upload_pdf(
 
     try:
         text = await services.vector_service.extract_text_from_pdf(data)
-        vectors = await services.vector_service.compute_vectors(text, chunk_size, embedding_model)
-        await services.pgvector_service.insert_vectors(chunk_size, vectors, database)
+        dimension = await services.pgvector_service.ensure_table(table, chunk_size)
+        vectors = await services.vector_service.compute_vectors(
+            text,
+            chunk_size,
+            embedding_model,
+            dimensions=dimension,
+        )
+        await services.pgvector_service.insert_vectors(table, vectors)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("Failed to process uploaded document")
         raise HTTPException(status_code=502, detail=f"Failed to process document: {exc}")
 
     return schemas.UploadPdfResponse(
         chunk_size=chunk_size,
-        database=database,
+        table=table,
         detail="Document uploaded successfully",
     )
 
@@ -181,7 +209,7 @@ async def ws_agents_chat(ws: WebSocket):
                 continue
 
             task = (payload.get("task") or "").strip()
-            database = payload.get("database")
+            table = payload.get("table") or payload.get("database")
 
             if not task:
                 await ws.send_json({"type": "error", "message": "Falta 'task'"})
@@ -198,7 +226,7 @@ async def ws_agents_chat(ws: WebSocket):
 
             # Ejecuta tu mismo flujo NL→SQL y devuelve mensajes "uno a uno"
             try:
-                messages = await services.agents_chat_service.call_rag_chat(task, database)
+                messages = await services.agents_chat_service.call_rag_chat(task, table)
                 # messages es una lista de dicts con: role, name, content, function_call (según tu esquema)
                 for msg in messages:
                     await ws.send_json({"type": "message", "data": msg})

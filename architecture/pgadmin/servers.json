@@ -1,0 +1,17 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Vector DB",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "vector_db",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer",
+      "ConnectTimeout": 10,
+      "Shared": true,
+      "Comment": "Preconfigured connection to the pgvector database"
+    }
+  }
+}

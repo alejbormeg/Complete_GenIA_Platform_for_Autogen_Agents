@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_core.documents import Document
@@ -31,17 +31,18 @@ class PGVectorStore:
 
     def __init__(self, settings: LangChainAppSettings) -> None:
         self._settings = settings
-        self._store: Optional[PGVector] = None
+        self._store_cache: Dict[str, PGVector] = {}
 
-    def _ensure_store(self) -> PGVector:
-        if self._store is None:
-            self._store = PGVector(
+    def _ensure_store(self, table: Optional[str] = None) -> PGVector:
+        collection = table or self._settings.vector_table
+        if collection not in self._store_cache:
+            self._store_cache[collection] = PGVector(
                 connection_string=self._settings.pg_connection_uri,
-                collection_name=self._settings.vector_table,
+                collection_name=collection,
                 embedding_function=get_embeddings(self._settings),
                 use_jsonb=True,
             )
-        return self._store
+        return self._store_cache[collection]
 
     @property
     def retriever(self) -> VectorStoreRetriever:
@@ -52,28 +53,26 @@ class PGVectorStore:
     def as_retriever(
         self,
         *,
-        database: Optional[str] = None,
+        table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> VectorStoreRetriever:
         """Instantiate a retriever with optional metadata filtering."""
 
-        store = self._ensure_store()
+        store = self._ensure_store(table)
         search_kwargs = {"k": top_k or self._settings.default_top_k}
-        if database:
-            search_kwargs["filter"] = {"database": database}
         return store.as_retriever(search_kwargs=search_kwargs)
 
     def similarity_search(
         self,
         query: str,
         *,
-        database: Optional[str] = None,
+        table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> List[RetrievalResult]:
         """Perform a semantic search over the stored embeddings."""
 
         try:
-            retriever = self.as_retriever(database=database, top_k=top_k)
+            retriever = self.as_retriever(table=table, top_k=top_k)
             documents: Iterable[Document] = retriever.invoke(query)
         except Exception as exc:  # pragma: no cover - best effort fallback for offline environments
             logger.warning("Vector store unavailable, proceeding without context: %s", exc)

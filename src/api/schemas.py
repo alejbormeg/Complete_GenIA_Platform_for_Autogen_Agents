@@ -5,10 +5,12 @@ from __future__ import annotations
 import os
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
+from pydantic.config import ConfigDict
 
 
 DEFAULT_CHUNK_SIZE = int(os.getenv("DEFAULT_CHUNK_SIZE", "1536"))
+DEFAULT_DATABASE = os.getenv("POSTGRESQL_DATABASE", "vector_db")
 
 
 class VectorRecord(BaseModel):
@@ -27,19 +29,33 @@ class ComputeVectorsResponse(BaseModel):
     vectors: List[VectorRecord]
 
 
-class TextToVectorDbRequest(ComputeVectorsRequest):
-    database: Optional[str] = None
+class TextToVectorDbRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    text: str
+    chunk_size: int = Field(DEFAULT_CHUNK_SIZE, gt=0)
+    embedding_model: str
+    table: str = Field(
+        ...,
+        min_length=1,
+        validation_alias=AliasChoices("table", "database"),
+        serialization_alias="table",
+    )
 
 
 class TextToVectorDbResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     chunk_size: int
-    database: Optional[str]
+    table: str = Field(..., serialization_alias="table")
     records: int
 
 
 class AgentsChatRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     task: str
-    database: Optional[str] = None
+    table: Optional[str] = Field(default=None, alias="database")
 
 
 class AgentMessage(BaseModel):
@@ -54,18 +70,24 @@ class AgentsChatResponse(BaseModel):
 
 
 class ExecuteQueryRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     query: str
-    database: Optional[str] = None
+    database: str = Field(DEFAULT_DATABASE, min_length=1)
+    table: Optional[str] = Field(default=None)
 
 
 class ExecuteQueryResponse(BaseModel):
-    database: Optional[str]
+    database: str
+    table: Optional[str] = None
     rows: List[List[Any]]
 
 
 class UploadPdfResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     chunk_size: int
-    database: Optional[str]
+    table: str = Field(..., alias="database")
     detail: str
 
 
@@ -75,5 +97,6 @@ class HealthResponse(BaseModel):
 
 
 class VectorDatabasesResponse(BaseModel):
-    chunk_size: int
-    databases: List[str]
+    model_config = ConfigDict(populate_by_name=True)
+
+    tables: List[str] = Field(default_factory=list, alias="databases")
