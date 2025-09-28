@@ -132,6 +132,24 @@ class VectorService:
         ]
 
     @staticmethod
+    def _split_markdown_sections(text: str) -> List[str]:
+        sections: List[str] = []
+        current: List[str] = []
+        for line in text.splitlines():
+            if line.lstrip().startswith("#") and current:
+                section = "\n".join(current).strip()
+                if section:
+                    sections.append(section)
+                current = [line]
+            else:
+                current.append(line)
+        if current:
+            section = "\n".join(current).strip()
+            if section:
+                sections.append(section)
+        return sections
+
+    @staticmethod
     def _ensure_dimension(dimensions: Optional[int]) -> Optional[int]:
         try:
             if dimensions is None:
@@ -150,6 +168,35 @@ class VectorService:
         response = self.client.embeddings.create(**payload)
         return response.data[0].embedding
 
+    async def _compute_embeddings(
+        self,
+        chunks: List[str],
+        *,
+        model: str,
+        dimensions: Optional[int],
+        start_entity_id: int = 0,
+    ) -> List[dict]:
+        records: List[dict] = []
+        for offset, chunk in enumerate(chunks):
+            embedding = await asyncio.to_thread(
+                self._embed_chunk,
+                text=chunk,
+                model=model,
+                dimensions=dimensions,
+            )
+            if dimensions and len(embedding) != dimensions:
+                raise ValueError(
+                    f"Embedding response dimension mismatch: requested {dimensions}, received {len(embedding)}"
+                )
+            records.append(
+                {
+                    "entity_id": start_entity_id + offset,
+                    "embedding": embedding,
+                    "text": chunk,
+                }
+            )
+        return records
+
     async def compute_vectors(
         self,
         text: str,
@@ -161,24 +208,38 @@ class VectorService:
         embed_dimensions = self._ensure_dimension(dimensions if dimensions is not None else chunk_size)
         chunk_words = max(1, chunk_size or embed_dimensions or 512)
         chunks = self._chunk_text(text, chunk_words)
-        records = []
-        for idx, chunk in enumerate(chunks):
-            embedding = await asyncio.to_thread(
-                self._embed_chunk,
-                text=chunk,
-                model=embedding_model,
-                dimensions=embed_dimensions,
-            )
-            if embed_dimensions and len(embedding) != embed_dimensions:
-                raise ValueError(
-                    f"Embedding response dimension mismatch: requested {embed_dimensions}, received {len(embedding)}"
-                )
-            records.append({
-                "entity_id": idx,
-                "embedding": embedding,
-                "text": chunk,
-            })
-        return records
+        if not chunks:
+            return []
+        return await self._compute_embeddings(
+            chunks,
+            model=embedding_model,
+            dimensions=embed_dimensions,
+        )
+
+    async def compute_markdown_vectors(
+        self,
+        text: str,
+        chunk_size: int,
+        embedding_model: str,
+        *,
+        dimensions: Optional[int] = None,
+    ) -> List[dict]:
+        embed_dimensions = self._ensure_dimension(dimensions if dimensions is not None else chunk_size)
+        chunk_words = max(1, chunk_size or embed_dimensions or 512)
+        sections = self._split_markdown_sections(text)
+        if not sections:
+            raise ValueError("No usable content found in Markdown document")
+        chunks: List[str] = []
+        for section in sections:
+            chunks.extend(self._chunk_text(section, chunk_words))
+        chunks = [chunk for chunk in chunks if chunk.strip()]
+        if not chunks:
+            raise ValueError("Failed to extract text chunks from Markdown document")
+        return await self._compute_embeddings(
+            chunks,
+            model=embedding_model,
+            dimensions=embed_dimensions,
+        )
 
     async def extract_text_from_pdf(self, data: bytes) -> str:
         def _extract() -> str:

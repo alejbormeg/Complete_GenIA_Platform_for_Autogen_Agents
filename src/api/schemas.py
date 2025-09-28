@@ -83,11 +83,12 @@ class ExecuteQueryResponse(BaseModel):
     rows: List[List[Any]]
 
 
-class UploadPdfResponse(BaseModel):
+class UploadMarkdownResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     chunk_size: int
-    table: str = Field(..., alias="database")
+    table: str
+    database: str
     detail: str
 
 

@@ -14,6 +14,8 @@ from .services import AppServices, build_services
 
 logger = logging.getLogger(__name__)
 DEFAULT_CHUNK_SIZE = schemas.DEFAULT_CHUNK_SIZE
+VECTOR_EMBEDDINGS_TABLE = "vector_embeddings_1536"
+VECTOR_EMBEDDINGS_DIMENSION = 1536
 
 
 app = FastAPI(title="GenIA API", version="0.2.0")
@@ -160,38 +162,61 @@ async def execute_query(
     )
 
 
-@app.post("/upload_pdf", response_model=schemas.UploadPdfResponse)
-async def upload_pdf(
+@app.post("/upload_md", response_model=schemas.UploadMarkdownResponse)
+async def upload_md(
     file: UploadFile,
     chunk_size: int = Form(...),
     embedding_model: str = Form(...),
-    table: str = Form(..., alias="database"),
+    database: str = Form(...),
     services: AppServices = Depends(get_services),
-) -> schemas.UploadPdfResponse:
+) -> schemas.UploadMarkdownResponse:
+    filename = (file.filename or "").lower()
+    if not filename.endswith((".md", ".markdown")):
+        raise HTTPException(status_code=400, detail="Only Markdown files (.md, .markdown) are supported")
+
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
     try:
-        text = await services.vector_service.extract_text_from_pdf(data)
-        dimension = await services.pgvector_service.ensure_table(table, chunk_size)
-        vectors = await services.vector_service.compute_vectors(
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Markdown file must be valid UTF-8 text") from exc
+
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Uploaded Markdown document has no textual content")
+
+    db_value = database.strip()
+    if not db_value:
+        raise HTTPException(status_code=400, detail="Database value must not be empty")
+
+    try:
+        dimension = await services.pgvector_service.ensure_table(
+            VECTOR_EMBEDDINGS_TABLE,
+            VECTOR_EMBEDDINGS_DIMENSION,
+        )
+        vectors = await services.vector_service.compute_markdown_vectors(
             text,
             chunk_size,
             embedding_model,
             dimensions=dimension,
         )
-        await services.pgvector_service.insert_vectors(table, vectors)
+        for record in vectors:
+            record["database"] = db_value
+        stored = await services.pgvector_service.insert_vectors(VECTOR_EMBEDDINGS_TABLE, vectors)
+        if stored == 0:
+            raise ValueError("No vectors were generated from the Markdown document")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("Failed to process uploaded document")
+        logger.exception("Failed to process uploaded Markdown document")
         raise HTTPException(status_code=502, detail=f"Failed to process document: {exc}")
 
-    return schemas.UploadPdfResponse(
+    return schemas.UploadMarkdownResponse(
         chunk_size=chunk_size,
-        table=table,
-        detail="Document uploaded successfully",
+        table=VECTOR_EMBEDDINGS_TABLE,
+        database=db_value,
+        detail="Markdown document uploaded successfully",
     )
 
 
