@@ -1,0 +1,323 @@
+-- Demo database for IberConsulting fiscal & labor advisory platform
+-- Creates schema, tables, constraints and seed data for congress presentation
+
+DROP SCHEMA IF EXISTS fiscal_consulting_demo CASCADE;
+CREATE SCHEMA fiscal_consulting_demo;
+SET search_path TO fiscal_consulting_demo;
+
+-- Enumerated types for controlled vocabularies
+CREATE TYPE client_category AS ENUM ('corporate', 'sme', 'individual', 'public');
+CREATE TYPE engagement_status AS ENUM ('planning', 'active', 'on_hold', 'completed', 'cancelled');
+CREATE TYPE case_status AS ENUM ('scheduled', 'in_progress', 'waiting_client', 'submitted', 'closed');
+CREATE TYPE case_priority AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE invoice_status AS ENUM ('draft', 'issued', 'paid', 'overdue', 'void');
+CREATE TYPE statement_kind AS ENUM ('monthly', 'quarterly', 'annual');
+CREATE TYPE tax_kind AS ENUM ('CIT', 'VAT', 'IRPF', 'SOCIAL_SECURITY', 'WITHHOLDING');
+
+-- Master data
+CREATE TABLE offices (
+    office_id      SERIAL PRIMARY KEY,
+    name           TEXT NOT NULL,
+    region         TEXT NOT NULL,
+    city           TEXT NOT NULL,
+    address        TEXT NOT NULL,
+    phone          TEXT,
+    email          TEXT UNIQUE,
+    opened_date    DATE,
+    headcount_cap  INTEGER DEFAULT 50,
+    CONSTRAINT chk_headcount_cap CHECK (headcount_cap > 0)
+);
+
+CREATE TABLE service_lines (
+    service_line_id SERIAL PRIMARY KEY,
+    name            TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    description     TEXT
+);
+
+CREATE TABLE employees (
+    employee_id     SERIAL PRIMARY KEY,
+    full_name       TEXT NOT NULL,
+    email           TEXT UNIQUE NOT NULL,
+    phone           TEXT,
+    role            TEXT NOT NULL,
+    grade           TEXT NOT NULL,
+    is_manager      BOOLEAN DEFAULT FALSE,
+    hire_date       DATE NOT NULL,
+    office_id       INTEGER REFERENCES offices(office_id) ON DELETE SET NULL,
+    service_line_id INTEGER REFERENCES service_lines(service_line_id) ON DELETE SET NULL,
+    salary_band     NUMERIC(10,2)
+);
+
+CREATE TABLE clients (
+    client_id            SERIAL PRIMARY KEY,
+    legal_name           TEXT NOT NULL,
+    trade_name           TEXT,
+    tax_id               TEXT UNIQUE NOT NULL,
+    category             client_category NOT NULL,
+    industry             TEXT,
+    headquarters_city    TEXT,
+    headquarters_region  TEXT,
+    contact_name         TEXT,
+    contact_email        TEXT,
+    contact_phone        TEXT,
+    onboarding_date      DATE NOT NULL,
+    account_manager_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    risk_rating          TEXT DEFAULT 'Medium',
+    billing_currency     TEXT DEFAULT 'EUR'
+);
+
+CREATE TABLE client_offices (
+    client_office_id SERIAL PRIMARY KEY,
+    client_id        INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    site_name        TEXT NOT NULL,
+    city             TEXT NOT NULL,
+    address          TEXT NOT NULL,
+    employees_count  INTEGER,
+    lead_contact     TEXT,
+    lead_email       TEXT
+);
+
+CREATE TABLE engagements (
+    engagement_id        SERIAL PRIMARY KEY,
+    client_id            INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    service_line_id      INTEGER NOT NULL REFERENCES service_lines(service_line_id) ON DELETE RESTRICT,
+    lead_consultant_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    start_date           DATE NOT NULL,
+    end_date             DATE,
+    status               engagement_status NOT NULL DEFAULT 'planning',
+    retainer_fee         NUMERIC(12,2),
+    billing_frequency    TEXT CHECK (billing_frequency IN ('monthly', 'quarterly', 'annual', 'one-off')),
+    description          TEXT,
+    renewal_probability  NUMERIC(5,2) CHECK (renewal_probability BETWEEN 0 AND 100)
+);
+
+CREATE TABLE engagement_offices (
+    engagement_id INTEGER REFERENCES engagements(engagement_id) ON DELETE CASCADE,
+    office_id     INTEGER REFERENCES offices(office_id) ON DELETE CASCADE,
+    PRIMARY KEY (engagement_id, office_id)
+);
+
+CREATE TABLE compliance_cases (
+    case_id            SERIAL PRIMARY KEY,
+    engagement_id      INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
+    case_code          TEXT UNIQUE NOT NULL,
+    case_type          TEXT NOT NULL,
+    fiscal_year        INTEGER NOT NULL,
+    fiscal_period      TEXT,
+    due_date           DATE,
+    status             case_status NOT NULL,
+    priority           case_priority NOT NULL DEFAULT 'medium',
+    assigned_lead_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    notes              TEXT
+);
+
+CREATE TABLE case_tasks (
+    task_id        SERIAL PRIMARY KEY,
+    case_id        INTEGER NOT NULL REFERENCES compliance_cases(case_id) ON DELETE CASCADE,
+    task_name      TEXT NOT NULL,
+    assigned_to_id INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    due_date       DATE,
+    status         TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'blocked')),
+    completed_at   TIMESTAMP,
+    comments       TEXT
+);
+
+CREATE TABLE documents (
+    document_id   SERIAL PRIMARY KEY,
+    case_id       INTEGER REFERENCES compliance_cases(case_id) ON DELETE CASCADE,
+    uploaded_by   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    doc_type      TEXT NOT NULL,
+    file_name     TEXT NOT NULL,
+    storage_path  TEXT NOT NULL,
+    uploaded_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    is_signed     BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE tax_returns (
+    tax_return_id SERIAL PRIMARY KEY,
+    client_id     INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    case_id       INTEGER REFERENCES compliance_cases(case_id) ON DELETE SET NULL,
+    fiscal_year   INTEGER NOT NULL,
+    tax_type      tax_kind NOT NULL,
+    period        TEXT,
+    amount_due    NUMERIC(12,2),
+    amount_paid   NUMERIC(12,2),
+    filing_date   DATE,
+    status        TEXT CHECK (status IN ('draft', 'filed', 'accepted', 'rejected'))
+);
+
+CREATE TABLE payroll_reports (
+    payroll_report_id SERIAL PRIMARY KEY,
+    client_id         INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    engagement_id     INTEGER REFERENCES engagements(engagement_id) ON DELETE SET NULL,
+    reporting_month   DATE NOT NULL,
+    employees_processed INTEGER NOT NULL,
+    total_gross_pay   NUMERIC(12,2) NOT NULL,
+    social_security_contrib NUMERIC(12,2) NOT NULL,
+    submitted_by_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    submission_date   DATE NOT NULL
+);
+
+CREATE TABLE financial_statements (
+    statement_id   SERIAL PRIMARY KEY,
+    client_id      INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
+    engagement_id  INTEGER REFERENCES engagements(engagement_id) ON DELETE SET NULL,
+    statement_type statement_kind NOT NULL,
+    period_start   DATE NOT NULL,
+    period_end     DATE NOT NULL,
+    revenue        NUMERIC(14,2),
+    expenses       NUMERIC(14,2),
+    payroll_costs  NUMERIC(14,2),
+    tax_provision  NUMERIC(14,2),
+    prepared_by_id INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    approved_by_id INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    approval_date  DATE
+);
+
+CREATE TABLE invoices (
+    invoice_id      SERIAL PRIMARY KEY,
+    engagement_id   INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
+    issued_by_id    INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
+    invoice_number  TEXT UNIQUE NOT NULL,
+    issue_date      DATE NOT NULL,
+    due_date        DATE NOT NULL,
+    amount_total    NUMERIC(12,2) NOT NULL,
+    status          invoice_status NOT NULL,
+    notes           TEXT
+);
+
+CREATE TABLE invoice_items (
+    invoice_item_id SERIAL PRIMARY KEY,
+    invoice_id      INTEGER NOT NULL REFERENCES invoices(invoice_id) ON DELETE CASCADE,
+    item_description TEXT NOT NULL,
+    quantity        INTEGER NOT NULL DEFAULT 1,
+    unit_price      NUMERIC(12,2) NOT NULL,
+    line_total      NUMERIC(12,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
+);
+
+-- Helpful indexes for reporting flows
+CREATE INDEX idx_employees_office ON employees(office_id);
+CREATE INDEX idx_clients_account_manager ON clients(account_manager_id);
+CREATE INDEX idx_cases_due_date ON compliance_cases(due_date);
+CREATE INDEX idx_payroll_reports_month ON payroll_reports(reporting_month);
+CREATE INDEX idx_financial_statements_period ON financial_statements(period_start, period_end);
+
+-- Seed data ---------------------------------------------------------------
+INSERT INTO offices (name, region, city, address, phone, email, opened_date, headcount_cap) VALUES
+    ('Sede Central Madrid', 'Centro', 'Madrid', 'Paseo de la Castellana 120', '+34 91 555 0101', 'madrid@iberconsulting.es', '2005-03-01', 120),
+    ('Oficina Barcelona', 'Cataluña', 'Barcelona', 'Avinguda Diagonal 640', '+34 93 555 0145', 'barcelona@iberconsulting.es', '2010-06-15', 80),
+    ('Oficina Valencia', 'Levante', 'Valencia', 'Carrer de Colón 34', '+34 96 555 0890', 'valencia@iberconsulting.es', '2015-02-20', 60),
+    ('Oficina Sevilla', 'Andalucía', 'Sevilla', 'Avenida de la Palmera 25', '+34 95 555 0670', 'sevilla@iberconsulting.es', '2018-09-03', 50);
+
+INSERT INTO service_lines (name, category, description) VALUES
+    ('Asesoría Fiscal Integral', 'Fiscal', 'Planificación y cumplimiento fiscal corporativo en territorio español y comunitario'),
+    ('Consultoría Laboral y Seguridad Social', 'Laboral', 'Gestión de nóminas, convenios colectivos y relaciones laborales'),
+    ('Contabilidad y Reporting', 'Contable', 'Elaboración de estados financieros y reporting regulatorio'),
+    ('Gobierno Corporativo y Riesgos', 'Legal', 'Diseño de modelos de control interno y prevención de riesgos');
+
+INSERT INTO employees (full_name, email, phone, role, grade, is_manager, hire_date, office_id, service_line_id, salary_band) VALUES
+    ('Laura Martín', 'laura.martin@iberconsulting.es', '+34 600 111 201', 'Socia Fiscal', 'Partner', TRUE, '2010-05-15', 1, 1, 95000.00),
+    ('Javier López', 'javier.lopez@iberconsulting.es', '+34 600 111 202', 'Director Laboral', 'Director', TRUE, '2012-09-01', 1, 2, 82000.00),
+    ('Anna Puig', 'anna.puig@iberconsulting.es', '+34 600 111 305', 'Consultora Senior Laboral', 'Senior', FALSE, '2017-02-10', 2, 2, 54000.00),
+    ('Diego Herrera', 'diego.herrera@iberconsulting.es', '+34 600 111 410', 'Manager Contable', 'Manager', TRUE, '2016-11-28', 3, 3, 62000.00),
+    ('Carmen Ruiz', 'carmen.ruiz@iberconsulting.es', '+34 600 111 512', 'Consultora Fiscal', 'Senior', FALSE, '2019-04-18', 4, 1, 52000.00),
+    ('Marta Gómez', 'marta.gomez@iberconsulting.es', '+34 600 111 613', 'Analista Fiscal', 'Associate', FALSE, '2021-01-12', 1, 1, 42000.00),
+    ('Sergio Vidal', 'sergio.vidal@iberconsulting.es', '+34 600 111 714', 'Especialista Nóminas', 'Associate', FALSE, '2020-03-23', 2, 2, 38000.00),
+    ('Isabel Torres', 'isabel.torres@iberconsulting.es', '+34 600 111 815', 'Controller Senior', 'Senior', FALSE, '2018-07-09', 3, 3, 56000.00);
+
+INSERT INTO clients (legal_name, trade_name, tax_id, category, industry, headquarters_city, headquarters_region, contact_name, contact_email, contact_phone, onboarding_date, account_manager_id, risk_rating, billing_currency) VALUES
+    ('Tecnologías Nova S.L.', 'TechNova', 'B12345678', 'sme', 'Tecnología', 'Madrid', 'Comunidad de Madrid', 'Luis Ortega', 'luis.ortega@technova.es', '+34 91 700 9001', '2019-01-15', 1, 'Low', 'EUR'),
+    ('Grupo Andaluz de Servicios S.A.', 'GASER', 'A87654321', 'corporate', 'Servicios Integrales', 'Sevilla', 'Andalucía', 'María Ángeles Robles', 'mar.robles@gaser.es', '+34 95 600 8200', '2017-09-05', 2, 'Medium', 'EUR'),
+    ('Clínica Mediterránea S.L.', 'Climed', 'B99887766', 'sme', 'Sanidad Privada', 'Valencia', 'Comunidad Valenciana', 'Dr. Carlos Falcó', 'cfalco@climed.es', '+34 96 300 4500', '2020-03-21', 4, 'Low', 'EUR'),
+    ('Consorcio Público Norte', 'CP Norte', 'Q1239874D', 'public', 'Administración Pública', 'Burgos', 'Castilla y León', 'Ana Belén Lora', 'ana.lora@cpnorte.es', '+34 947 550 112', '2018-11-02', 1, 'Medium', 'EUR'),
+    ('Estudio Creativo Brío S.Coop.', 'Brío', 'F44556677', 'sme', 'Marketing y Diseño', 'Barcelona', 'Cataluña', 'Núria Pons', 'nuria@briocreativo.com', '+34 93 200 1122', '2022-06-17', 3, 'Medium', 'EUR');
+
+INSERT INTO client_offices (client_id, site_name, city, address, employees_count, lead_contact, lead_email) VALUES
+    (1, 'Sede Central', 'Madrid', 'Calle Alcalá 45', 120, 'Beatriz Ramos', 'beatriz.ramos@technova.es'),
+    (1, 'Centro de Innovación', 'Bilbao', 'Gran Vía Don Diego López de Haro 30', 45, 'Iñigo Arriaga', 'iarriaga@technova.es'),
+    (2, 'Servicios Integrales', 'Sevilla', 'Polígono La Negrilla nave 6', 200, 'Pedro Galván', 'pedro.galvan@gaser.es'),
+    (2, 'Delegación Málaga', 'Málaga', 'Avenida de Andalucía 25', 75, 'Isabel Cuevas', 'isabel.cuevas@gaser.es'),
+    (3, 'Hospital Privado', 'Valencia', 'Av. Blasco Ibáñez 60', 90, 'Sara Font', 'sara.font@climed.es'),
+    (4, 'Sede Norte', 'Burgos', 'Plaza Mayor 1', 300, 'Julián Cascos', 'julian.cascos@cpnorte.es'),
+    (5, 'Oficina Creativa', 'Barcelona', 'Carrer de la Lluna 14', 25, 'Núria Pons', 'nuria@briocreativo.com');
+
+INSERT INTO engagements (client_id, service_line_id, lead_consultant_id, start_date, end_date, status, retainer_fee, billing_frequency, description, renewal_probability) VALUES
+    (1, 1, 1, '2023-01-01', NULL, 'active', 4500.00, 'monthly', 'Cumplimiento fiscal recurrente y planificación de incentivos I+D', 85.00),
+    (1, 2, 3, '2023-04-01', NULL, 'active', 2500.00, 'monthly', 'Gestión integral de nóminas y altas en Seguridad Social', 90.00),
+    (2, 2, 2, '2022-07-01', '2024-06-30', 'active', 3800.00, 'monthly', 'Outsourcing laboral multi-centro y auditoría salarial', 75.00),
+    (2, 4, 1, '2023-09-01', NULL, 'planning', 5200.00, 'quarterly', 'Proyecto de gobernanza y canal de denuncia', 65.00),
+    (3, 3, 4, '2021-02-01', NULL, 'active', 1800.00, 'monthly', 'Reporting financiero y conciliaciones mensuales', 80.00),
+    (4, 1, 6, '2022-10-01', NULL, 'on_hold', 6000.00, 'quarterly', 'Asistencia fiscal en fondos europeos', 55.00),
+    (5, 1, 5, '2023-06-15', NULL, 'active', 900.00, 'monthly', 'Soporte fiscal para cooperativa creativa', 92.00);
+
+INSERT INTO engagement_offices (engagement_id, office_id) VALUES
+    (1, 1), (1, 2),
+    (2, 1), (2, 2),
+    (3, 1), (3, 4),
+    (4, 1), (4, 4),
+    (5, 3),
+    (6, 1), (6, 3),
+    (7, 2);
+
+INSERT INTO compliance_cases (engagement_id, case_code, case_type, fiscal_year, fiscal_period, due_date, status, priority, assigned_lead_id, notes) VALUES
+    (1, 'TN-VAT-2023Q4', 'Declaración IVA Trimestral', 2023, 'Q4', '2024-01-20', 'submitted', 'high', 6, 'Presentada con deducción por inversión tecnológica'),
+    (1, 'TN-CIT-2023', 'Impuesto de Sociedades', 2023, 'Anual', '2024-07-25', 'in_progress', 'critical', 1, 'Pendiente información sobre amortizaciones aceleradas'),
+    (2, 'TN-PAY-2024M01', 'Ciclo Nómina Mensual', 2024, 'Enero', '2024-02-01', 'closed', 'medium', 3, 'Proceso automatizado con incidencias resueltas'),
+    (3, 'GA-AUD-2023', 'Auditoría laboral multi-centro', 2023, 'Especial', '2024-03-15', 'waiting_client', 'high', 2, 'Pendiente de documentación de delegación Málaga'),
+    (5, 'CM-REP-2023Q4', 'Informe financiero trimestral', 2023, 'Q4', '2024-01-31', 'submitted', 'medium', 4, 'Estado remitido al consejo médico'),
+    (7, 'BR-IVA-2023Q4', 'Declaración IVA Trimestral', 2023, 'Q4', '2024-01-20', 'submitted', 'medium', 5, 'Aplicadas exenciones por operaciones intracomunitarias'),
+    (6, 'CP-FEU-2024', 'Justificación fondos europeos', 2024, 'Convocatoria FEDER', '2024-09-30', 'scheduled', 'high', 6, 'A la espera de reactivación del proyecto por parte del cliente');
+
+INSERT INTO case_tasks (case_id, task_name, assigned_to_id, due_date, status, completed_at, comments) VALUES
+    (1, 'Conciliar libros de IVA', 6, '2024-01-10', 'completed', '2024-01-09 16:30', 'Conciliación con ERP finalizada sin diferencias'),
+    (1, 'Revisar facturas intracomunitarias', 1, '2024-01-12', 'completed', '2024-01-11 11:00', 'Validada aplicación del artículo 62 LIVA'),
+    (2, 'Actualizar amortizaciones por I+D', 6, '2024-06-30', 'in_progress', NULL, 'Pendiente de cifras definitivas de laboratorio IA'),
+    (3, 'Calcular nóminas y retenciones', 3, '2024-01-28', 'completed', '2024-01-27 18:45', 'Cerrado periodo con incidencias mínimas'),
+    (4, 'Revisar convenios colectivos', 7, '2024-02-29', 'in_progress', NULL, 'Dudas sobre plus transporte en Málaga'),
+    (5, 'Generar informe de ratios médicos', 4, '2024-01-12', 'submitted', '2024-01-12 09:20', 'Ratios entregados al consejero delegado'),
+    (6, 'Clasificar tickets gastos UE', 5, '2024-01-14', 'completed', '2024-01-14 13:15', 'Tickets cargados en gestor documental'),
+    (7, 'Actualizar cronograma de hitos', 6, '2024-06-01', 'pending', NULL, 'A la espera de confirmación de fechas del ministerio');
+
+INSERT INTO documents (case_id, uploaded_by, doc_type, file_name, storage_path, uploaded_at, is_signed) VALUES
+    (1, 6, 'Libro registro IVA', 'TN_Q4_2023_libro_iva.xlsx', '/files/technova/iva/2023Q4/libro.xlsx', '2024-01-08 09:42', TRUE),
+    (2, 1, 'Modelo 200 borrador', 'TN_2023_modelo200.pdf', '/files/technova/is/2023/modelo200.pdf', '2024-05-10 12:05', FALSE),
+    (3, 3, 'Resumen nómina', 'TN_enero2024_nominas.zip', '/files/technova/payroll/2024-01.zip', '2024-01-27 19:00', TRUE),
+    (4, 2, 'Checklist auditoría', 'GASER_aud_checklist.xlsx', '/files/gaser/auditorias/2023/checklist.xlsx', '2024-02-05 10:15', FALSE),
+    (5, 4, 'Informe financiero', 'Climed_Q4_2023.pdf', '/files/climed/reporting/Q4_2023.pdf', '2024-01-11 17:50', TRUE),
+    (6, 5, 'Justificante IVA', 'Brio_iva_modelo303.pdf', '/files/brio/iva/2023Q4_modelo303.pdf', '2024-01-15 08:20', TRUE);
+
+INSERT INTO tax_returns (client_id, case_id, fiscal_year, tax_type, period, amount_due, amount_paid, filing_date, status) VALUES
+    (1, 1, 2023, 'VAT', 'Q4', 24500.34, 24500.34, '2024-01-18', 'accepted'),
+    (1, 2, 2023, 'CIT', 'Anual', 132000.00, 0.00, NULL, 'draft'),
+    (5, 6, 2023, 'VAT', 'Q4', 4850.00, 4850.00, '2024-01-17', 'accepted'),
+    (4, NULL, 2023, 'SOCIAL_SECURITY', 'Anual', 76000.00, 76000.00, '2024-02-05', 'filed');
+
+INSERT INTO payroll_reports (client_id, engagement_id, reporting_month, employees_processed, total_gross_pay, social_security_contrib, submitted_by_id, submission_date) VALUES
+    (1, 2, '2024-01-01', 165, 382500.75, 118575.23, 3, '2024-01-30'),
+    (1, 2, '2024-02-01', 168, 388120.10, 120317.24, 7, '2024-02-28'),
+    (2, 3, '2024-01-01', 245, 512840.60, 160020.88, 2, '2024-01-29'),
+    (3, 5, '2024-01-01', 92, 198450.30, 61919.59, 4, '2024-01-27');
+
+INSERT INTO financial_statements (client_id, engagement_id, statement_type, period_start, period_end, revenue, expenses, payroll_costs, tax_provision, prepared_by_id, approved_by_id, approval_date) VALUES
+    (1, 1, 'quarterly', '2023-10-01', '2023-12-31', 2150000.00, 1760000.00, 485000.00, 162000.00, 4, 1, '2024-01-12'),
+    (3, 5, 'quarterly', '2023-10-01', '2023-12-31', 1485000.00, 1125000.00, 315000.00, 84500.00, 4, 1, '2024-01-10'),
+    (2, 3, 'annual', '2023-01-01', '2023-12-31', 6850000.00, 5620000.00, 1890000.00, 354000.00, 8, 2, '2024-02-20');
+
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    (1, 1, 'INV-2024-001', '2024-01-05', '2024-01-31', 4500.00, 'paid', 'Retainer mensual enero 2024'),
+    (2, 3, 'INV-2024-015', '2024-01-05', '2024-01-31', 2500.00, 'paid', 'Servicio nómina enero 2024'),
+    (3, 2, 'INV-2024-027', '2024-02-01', '2024-02-28', 4250.00, 'issued', 'Outsourcing laboral febrero 2024'),
+    (5, 4, 'INV-2024-041', '2024-01-12', '2024-02-10', 1800.00, 'overdue', 'Reporting financiero Q4 2023'),
+    (7, 5, 'INV-2024-052', '2024-01-20', '2024-02-20', 900.00, 'paid', 'Retainer fiscal cooperativa');
+
+INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) VALUES
+    (1, 'Retainer asesoría fiscal mes enero', 1, 4500.00),
+    (2, 'Gestión nóminas enero (165 empleados)', 1, 2500.00),
+    (3, 'Honorarios outsourcing laboral febrero', 1, 3800.00),
+    (3, 'Bonificación ITSS Málaga', 1, 450.00),
+    (4, 'Informe financiero Q4 2023', 1, 1500.00),
+    (4, 'Reunión extraordinaria consejo médico', 1, 300.00),
+    (5, 'Retainer fiscal mensual', 1, 900.00);
+
+-- End of seed script
