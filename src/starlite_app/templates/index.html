@@ -280,9 +280,9 @@
             </label>
           </div>
           <label>
-            Logical Database Label (optional)
-            <input id="vector-db" name="database" type="text" placeholder="ex: knowledge_base_markdown" value="{{ pg_database or '' }}" />
-            <div class="helper">Used to group embeddings inside Postgres. Leave blank to auto-generate.</div>
+            Dataset Label
+            <input id="vector-db" name="database" type="text" placeholder="ex: Marketing wiki" value="{{ pg_database or '' }}" required />
+            <div class="helper">Used to tag the embeddings stored in Postgres. Letters, numbers, spaces are fine.</div>
           </label>
           <div class="flex">
             <button type="submit">Vectorize Document</button>
@@ -358,7 +358,7 @@
   <script>
     const API_BASE = ("{{ backend_url }}" || "").replace(/\/$/, "");
     const DEFAULT_CHUNK_SIZE = {{ default_chunk_size }};
-    const PG_DATABASE = "{{ pg_database }}";
+    const PG_DATABASE = "{{ pg_database }}".trim();
     const DEFAULT_EMBEDDING_MODEL = "{{ embedding_model }}";
 
     const screens = document.querySelectorAll('.screen');
@@ -374,9 +374,20 @@
     (async () => {
       if (!API_BASE) { connectivityEl.textContent = 'No backend URL configured'; return; }
       try {
-        const res = await fetch(`${API_BASE}/health`).catch(() => null);
-        connectivityEl.textContent = res && res.ok ? 'Backend connected' : 'Backend not reachable';
-      } catch { connectivityEl.textContent = 'Backend not reachable'; }
+        const res = await fetch(`${API_BASE}/healthz`).catch(() => null);
+        if (!res || !res.ok) { connectivityEl.textContent = 'Backend not reachable'; return; }
+        let message = 'Backend connected';
+        try {
+          const info = await res.json();
+          if (info?.status && info.status !== 'ok') { message = `Backend ${info.status}`; }
+          if (info?.database_status && info.database_status !== 'ok') {
+            message = `${message} (database ${info.database_status})`;
+          }
+        } catch (_) { /* ignore parse errors */ }
+        connectivityEl.textContent = message;
+      } catch {
+        connectivityEl.textContent = 'Backend not reachable';
+      }
     })();
 
     // -------- Vectorization Flow --------
@@ -386,14 +397,18 @@
     const markdownInput = document.getElementById('markdown-file');
     const fileStatus = document.getElementById('file-status');
     let fileTextCache = '';
+    let selectedFile = null;
 
     markdownInput.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       fileTextCache = '';
+      selectedFile = file || null;
       if (!file) { fileStatus.textContent = 'No file selected yet.'; return; }
       const name = file.name.toLowerCase();
       if (!name.endsWith('.md') && !name.endsWith('.markdown') && !name.endsWith('.txt')) {
-        fileStatus.textContent = 'Please choose a markdown (.md) file.'; return;
+        selectedFile = null;
+        fileStatus.textContent = 'Please choose a markdown (.md) file.';
+        return;
       }
       fileStatus.textContent = `Loading ${file.name}…`;
       const reader = new FileReader();
@@ -412,39 +427,55 @@
       vectorOutput.hidden = true;
       vectorMessage.classList.remove('error');
 
-      if (!fileTextCache.trim()) {
-        vectorMessage.textContent = 'Please upload a markdown document first.';
+      const chunkSize = Number(document.getElementById('vector-chunk').value || DEFAULT_CHUNK_SIZE);
+      const model = document.getElementById('vector-model').value || DEFAULT_EMBEDDING_MODEL;
+      const databaseLabel = document.getElementById('vector-db').value.trim();
+      if (!selectedFile) {
+        vectorMessage.textContent = 'Please choose a markdown document before uploading.';
+        vectorMessage.classList.add('error');
+        return;
+      }
+      if (!databaseLabel) {
+        vectorMessage.textContent = 'Please provide a dataset label to store the embeddings.';
         vectorMessage.classList.add('error');
         return;
       }
 
-      const chunkSize = Number(document.getElementById('vector-chunk').value || DEFAULT_CHUNK_SIZE);
-      const model = document.getElementById('vector-model').value || DEFAULT_EMBEDDING_MODEL;
-      const databaseRaw = document.getElementById('vector-db').value.trim();
-      const table = databaseRaw.length ? databaseRaw : null;
-
-      const payload = { text: fileTextCache, chunk_size: chunkSize, embedding_model: model, table };
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('chunk_size', String(chunkSize));
+      formData.append('embedding_model', model);
+      formData.append('database', databaseLabel);
 
       vectorForm.classList.add('loading');
-      vectorMessage.textContent = 'Vectorizing document…';
+      vectorMessage.textContent = 'Uploading document for vectorization…';
 
       try {
-        const response = await fetch(`${API_BASE}/text_to_vectordb`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        const response = await fetch(`${API_BASE}/upload_md`, {
+          method: 'POST',
+          body: formData,
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.detail || 'Failed to vectorize document');
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          const detail = (data && (data.detail || data.message)) || 'Failed to vectorize document';
+          throw new Error(detail);
+        }
 
         const details = [
-          `Table: ${data.table || 'auto-selected'}`,
-          `Chunk size: ${data.chunk_size}`,
-          `Records inserted: ${data.records}`,
+          `Table: ${data?.table || 'vector_embeddings_1536'}`,
+          `Database tag: ${data?.database || databaseLabel}`,
+          `Chunk size: ${data?.chunk_size ?? chunkSize}`,
+          data?.detail || 'Markdown document uploaded successfully.',
         ].join('\n');
 
         vectorOutput.textContent = details;
         vectorOutput.hidden = false;
         vectorMessage.textContent = 'Embedding complete.';
         vectorMessage.classList.remove('error');
+        vectorForm.reset();
+        selectedFile = null;
+        fileTextCache = '';
+        fileStatus.textContent = 'No file selected yet.';
       } catch (error) {
         console.error(error);
         vectorMessage.classList.add('error');
@@ -565,8 +596,10 @@
       sqlResults.appendChild(table); sqlResults.hidden = false;
     }
 
-    async function executeQuery(sql, database) {
-      const payload = { query: sql, database: database || null };
+    async function executeQuery(sql, table) {
+      const payload = { query: sql };
+      if (PG_DATABASE) { payload.database = PG_DATABASE; }
+      if (table) { payload.table = table; }
       const response = await fetch(`${API_BASE}/execute_query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.detail || 'Failed to execute SQL query');
@@ -581,14 +614,15 @@
       const prompt = chatInput.value.trim();
       if (!prompt) { chatStatus.textContent = 'Please provide a question for the agents.'; return; }
 
-      const databaseValue = chatDatabase.value.trim();
-      const payload = { task: prompt, database: databaseValue.length ? databaseValue : null };
+      const selectedTable = chatDatabase.value.trim();
+      const chatPayload = { task: prompt };
+      if (selectedTable) { chatPayload.table = selectedTable; }
 
       chatForm.classList.add('loading');
       chatStatus.textContent = 'Agents are thinking…';
 
       try {
-        const response = await fetch(`${API_BASE}/agents_chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const response = await fetch(`${API_BASE}/agents_chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatPayload) });
         const data = await response.json();
         if (!response.ok) throw new Error(data?.detail || 'Agentic chat failed');
 
@@ -599,7 +633,7 @@
         if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'No SQL detected in agent response yet.'; sqlResults.hidden = true; return; }
 
         sqlPreview.hidden = false; sqlPreview.textContent = sql;
-        try { const rows = await executeQuery(sql, payload.database); renderSqlTable(rows); }
+        try { const rows = await executeQuery(sql, selectedTable); renderSqlTable(rows); }
         catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
       } catch (error) {
         console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';

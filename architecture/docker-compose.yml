@@ -74,7 +74,7 @@ services:
     container_name: genia-frontend
     restart: unless-stopped
     environment:
-      BACKEND_URL: http://backend:8001
+      BACKEND_URL: http://localhost:8001
       DEFAULT_CHUNK_SIZE: "1536"
       POSTGRESQL_DATABASE: ${POSTGRES_DB:-vector_db}
       GPT_EMBEDDING_ENGINE: text-embedding-3-large
