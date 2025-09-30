@@ -2,10 +2,22 @@
 set -euo pipefail
 
 if [ -f /app/src/.env ]; then
-    set -a
-    # shellcheck disable=SC1091
-    . /app/src/.env
-    set +a
+    # Load default values from .env without overriding variables injected by the runtime
+    eval "$(python - <<'PY'
+import os
+import shlex
+from dotenv import dotenv_values
+
+for key, value in dotenv_values('/app/src/.env').items():
+    if not key:
+        continue
+    if value is None:
+        continue
+    if key in os.environ:
+        continue
+    print(f"export {key}={shlex.quote(value)}")
+PY
+    )"
 fi
 
 exec uvicorn api.app:app --host 0.0.0.0 --port "${PORT:-8001}"

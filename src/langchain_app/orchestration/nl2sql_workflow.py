@@ -14,7 +14,8 @@ from ..agents.chains import (
     build_sql_chain,
 )
 from ..settings import LangChainAppSettings
-from ..vectorstores.pgvector import PGVectorStore, RetrievalResult
+# ⬇️ Usamos la nueva API del vector store
+from ..vectorstores.pgvector import retrieve, RetrievalResult
 
 
 @dataclass(slots=True)
@@ -36,10 +37,10 @@ class NL2SQLWorkflow:
         self,
         settings: Optional[LangChainAppSettings] = None,
         *,
-        vector_store: Optional[PGVectorStore] = None,
+        # mantenemos el parámetro para compatibilidad, pero ya no se usa
+        vector_store: Optional[object] = None,
     ) -> None:
         self.settings = settings or LangChainAppSettings.from_env()
-        self.vector_store = vector_store or PGVectorStore(self.settings)
         model = build_chat_model(self.settings)
         self._planner = build_planner_chain(model)
         self._sql = build_sql_chain(model)
@@ -52,14 +53,29 @@ class NL2SQLWorkflow:
         table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> NL2SQLResult:
-        """Execute the orchestration synchronously."""
+        k = top_k or getattr(self.settings, "pgvector_top_k", 5)
 
-        retrievals = self.vector_store.similarity_search(
-            question,
-            table=table,
-            top_k=top_k,
+        default_vec_table = getattr(self.settings, "vector_table", "vector_embeddings_1536")
+        if table and "vector_embeddings" in table:
+            vec_table = table
+            db_filter = None
+        else:
+            vec_table = default_vec_table
+            db_filter = table  # p.ej. "financial"
+
+        retrievals: List[RetrievalResult] = retrieve(
+            self.settings,
+            query=question,
+            table=vec_table,
+            database_filter=db_filter,
+            k=k,
         )
+
+        print(f"Retrieved {len(retrievals)} context documents from vector store")
         context = _format_context(retrievals)
+        print("Formatted context for LLM:")
+        print(context)
+
         plan = self._planner.invoke({"question": question, "context": context})
         sql_raw = self._sql.invoke({
             "question": question,
@@ -99,9 +115,7 @@ class NL2SQLWorkflow:
         top_k: Optional[int] = None,
     ) -> NL2SQLResult:
         """Async wrapper compatible with Starlite."""
-
         from functools import partial
-
         runner = partial(self.run, question, table=table, top_k=top_k)
         return await anyio.to_thread.run_sync(runner)
 
@@ -122,7 +136,6 @@ def _format_context(retrievals: List[RetrievalResult]) -> str:
 
 def _strip_termination(message: str) -> str:
     """Remove the legacy 'Terminate' suffix while keeping SQL intact."""
-
     cleaned = message.strip()
     lower = cleaned.lower()
     if lower.endswith("terminate"):

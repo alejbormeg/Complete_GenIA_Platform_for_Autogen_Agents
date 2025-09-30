@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from typing import Optional
+from typing import Optional, Sequence
 
 
 @dataclass(slots=True, frozen=True)
@@ -27,22 +27,27 @@ class LangChainAppSettings:
     def from_env(cls) -> "LangChainAppSettings":
         """Build settings from environment variables."""
 
-        missing = []
-        def _env(key: str, default: Optional[str] = None) -> Optional[str]:
-            value = os.getenv(key, default)
-            if value is None:
-                missing.append(key)
-            return value
+        missing: list[str] = []
+
+        def _env(keys: Sequence[str] | str, default: Optional[str] = None) -> Optional[str]:
+            candidates = (keys,) if isinstance(keys, str) else tuple(keys)
+            for key in candidates:
+                value = os.getenv(key)
+                if value is not None:
+                    return value
+            if default is None:
+                missing.append(candidates[0])
+            return default
 
         settings = cls(
             openai_api_key=_env("OPENAI_API_KEY", ""),
             chat_model=_env("GPT_MODEL", "gpt-4o-mini"),
             embedding_model=_env("GPT_EMBEDDING_ENGINE", "text-embedding-3-large"),
-            pg_host=_env("POSTGRESQL_HOST", "localhost"),
-            pg_port=int(_env("POSTGRESQL_PORT", "5432")),
-            pg_user=_env("POSTGRESQL_USER", "postgres"),
-            pg_password=_env("POSTGRESQL_PASSWORD", ""),
-            pg_database=_env("POSTGRESQL_DATABASE", "postgres"),
+            pg_host=_env(("POSTGRESQL_HOST", "POSTGRES_HOST"), "localhost"),
+            pg_port=int(_env(("POSTGRESQL_PORT", "POSTGRES_PORT"), "5432")),
+            pg_user=_env(("POSTGRESQL_USER", "POSTGRES_USER"), "postgres"),
+            pg_password=_env(("POSTGRESQL_PASSWORD", "POSTGRES_PASSWORD"), ""),
+            pg_database=_env(("POSTGRESQL_DATABASE", "POSTGRES_DB"), "postgres"),
             vector_table=_env("PGVECTOR_TABLE", "vector_embeddings_1536"),
             vector_dimensions=int(_env("PGVECTOR_DIMENSIONS", "1536")),
             default_top_k=int(_env("PGVECTOR_TOP_K", "3")),

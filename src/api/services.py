@@ -37,6 +37,14 @@ except Exception as exc:  # pragma: no cover - logged for visibility but not fat
 # ---------------------------------------------------------------------------
 # PostgreSQL configuration and connection helpers
 # ---------------------------------------------------------------------------
+def _env(*keys: str, default: Optional[str] = None) -> Optional[str]:
+    """Return the first non-empty environment value for the provided keys."""
+
+    for key in keys:
+        value = os.getenv(key)
+        if value not in (None, ""):
+            return value
+    return default
 
 
 @dataclass
@@ -52,13 +60,13 @@ class PGConfig:
     @classmethod
     def from_env(cls) -> "PGConfig":
         return cls(
-            host=os.getenv("POSTGRES_HOST", "db"),
-            port=int(os.getenv("POSTGRES_PORT", "5432")),
-            db=os.getenv("POSTGRES_DB", "postgres"),
-            user=os.getenv("POSTGRES_USER", "postgres"),
-            password=os.getenv("POSTGRES_PASSWORD", "postgres"),
-            sslmode=os.getenv("POSTGRES_SSLMODE"),
-            application_name=os.getenv("PGAPPNAME", "backend"),
+            host=_env("POSTGRES_HOST", "POSTGRESQL_HOST", default="db"),
+            port=int(_env("POSTGRES_PORT", "POSTGRESQL_PORT", default="5432")),
+            db=_env("POSTGRES_DB", "POSTGRESQL_DATABASE", default="postgres"),
+            user=_env("POSTGRES_USER", "POSTGRESQL_USER", default="postgres"),
+            password=_env("POSTGRES_PASSWORD", "POSTGRESQL_PASSWORD", default="postgres"),
+            sslmode=_env("POSTGRES_SSLMODE", "POSTGRESQL_SSLMODE"),
+            application_name=_env("PGAPPNAME", default="backend"),
         )
 
     def dsn(self) -> str:
