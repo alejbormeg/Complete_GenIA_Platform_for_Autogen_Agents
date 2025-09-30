@@ -583,6 +583,42 @@
       return null;
     }
 
+    function inferTableFromSql(sql) {
+      if (typeof sql !== 'string' || !sql.trim().length) return null;
+      const text = sql;
+      const identifierPattern = /(?:from|join)\s+([\w".]+)(?=\s|$|,)/gi;
+      const seen = new Set();
+
+      function normalize(identifier) {
+        if (!identifier) return null;
+        let cleaned = identifier.replace(/[`"']/g, '');
+        const dotIndex = cleaned.lastIndexOf('.');
+        if (dotIndex !== -1) cleaned = cleaned.slice(dotIndex + 1);
+        cleaned = cleaned.trim();
+        if (!cleaned) return null;
+        if (!/^[_A-Za-z][_A-Za-z0-9]*$/.test(cleaned)) return null;
+        return cleaned;
+      }
+
+      function isCte(candidate) {
+        if (!candidate) return false;
+        if (seen.has(candidate)) return true;
+        const pattern = new RegExp(`\\bwith\\s+${candidate}\\s+as\\b`, 'i');
+        return pattern.test(text);
+      }
+
+      let match;
+      while ((match = identifierPattern.exec(text)) !== null) {
+        const candidate = normalize(match[1]);
+        if (!candidate || isCte(candidate)) {
+          if (candidate) seen.add(candidate);
+          continue;
+        }
+        return candidate;
+      }
+      return null;
+    }
+
     function renderSqlTable(rows) {
       sqlResults.innerHTML = '';
       if (!rows?.length) { sqlResults.textContent = 'Query executed. No rows returned.'; sqlResults.hidden = false; return; }
@@ -633,7 +669,8 @@
         if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'No SQL detected in agent response yet.'; sqlResults.hidden = true; return; }
 
         sqlPreview.hidden = false; sqlPreview.textContent = sql;
-        try { const rows = await executeQuery(sql, selectedTable); renderSqlTable(rows); }
+        const tableForQuery = inferTableFromSql(sql) || null;
+        try { const rows = await executeQuery(sql, tableForQuery); renderSqlTable(rows); }
         catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
       } catch (error) {
         console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';

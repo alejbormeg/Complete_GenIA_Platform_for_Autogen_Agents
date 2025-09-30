@@ -282,17 +282,25 @@ class PGVectorService:
             raise ValueError(f"Invalid table name '{table}'")
         return name
 
-    def _table_exists_sync(self, table: str) -> bool:
+    def _normalize_schema(self, schema: str) -> str:
+        name = (schema or "").strip()
+        if not name:
+            raise ValueError("Schema name must not be empty")
+        if not self.IDENTIFIER_PATTERN.fullmatch(name):
+            raise ValueError(f"Invalid schema name '{schema}'")
+        return name
+
+    def _table_exists_sync(self, table: str, *, schema: str = "public") -> bool:
         with self.conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT EXISTS (
                     SELECT 1
                     FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_name = %s
+                    WHERE table_schema = %s AND table_name = %s
                 ) AS present;
                 """,
-                (table,),
+                (schema, table),
             )
             row = cur.fetchone()
         return bool(row and row.get("present"))
@@ -321,27 +329,31 @@ class PGVectorService:
             raise ValueError("Embedding dimension must be a positive integer")
         return value
 
-    def _ensure_table_exists(self, table: str) -> str:
+    def _ensure_table_exists(self, table: str, *, schema: str = "public") -> str:
         name = self._normalize_table(table)
-        if not self._table_exists_sync(name):
-            raise ValueError(f"Table '{name}' does not exist in database '{self.database_name}'")
+        schema_name = self._normalize_schema(schema)
+        if not self._table_exists_sync(name, schema=schema_name):
+            raise ValueError(
+                f"Table '{schema_name}.{name}' does not exist in database '{self.database_name}'"
+            )
         return name
 
-    def _table_columns_sync(self, table: str) -> List[str]:
+    def _table_columns_sync(self, table: str, *, schema: str = "public") -> List[str]:
         with self.conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT column_name
                 FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = %s
+                WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position;
                 """,
-                (table,),
+                (schema, table),
             )
             rows = cur.fetchall()
         return [row["column_name"] for row in rows]
 
-    def _table_vector_dimension_sync(self, table: str) -> Optional[int]:
+    def _table_vector_dimension_sync(self, table: str, *, schema: str = "public") -> Optional[int]:
+        qualified = f"{schema}.{table}"
         with self.conn.cursor() as cur:
             cur.execute(
                 """
@@ -352,7 +364,7 @@ class PGVectorService:
                 AND a.attnum > 0
                 AND NOT a.attisdropped;
                 """,
-                (table,),
+                (qualified,),
             )
             row = cur.fetchone()
         dimension = row.get("dimension") if row else None
@@ -543,21 +555,40 @@ class PGVectorService:
         query: str,
         *,
         table: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> List[List]:
         statement = query.strip()
         if not statement:
             return []
 
         def _execute() -> List[List]:
-            self._verify_database(database)
+            target_db = database or self.database_name
+            self._verify_database(target_db)
+            schema_name = self._normalize_schema(schema) if schema else None
             if table:
-                self._ensure_table_exists(table)
+                if schema_name:
+                    self._ensure_table_exists(table, schema=schema_name)
+                else:
+                    self._ensure_table_exists(table)
             with self.conn.cursor() as cur:
+                if schema_name:
+                    search_path = sql.SQL(", ").join(
+                        [sql.Identifier(schema_name), sql.Identifier("public")]
+                    )
+                    cur.execute(
+                        sql.SQL("SET search_path TO {schema_list}").format(
+                            schema_list=search_path
+                        )
+                    )
                 cur.execute(statement)
                 if cur.description is None:
+                    if schema_name:
+                        cur.execute("SET search_path TO DEFAULT")
                     self.conn.commit()
                     return []
                 rows = cur.fetchall()
+                if schema_name:
+                    cur.execute("SET search_path TO DEFAULT")
             return [list(row.values()) for row in rows]
 
         return await asyncio.to_thread(_execute)

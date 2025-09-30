@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import json
+import re
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +17,38 @@ logger = logging.getLogger(__name__)
 DEFAULT_CHUNK_SIZE = schemas.DEFAULT_CHUNK_SIZE
 VECTOR_EMBEDDINGS_TABLE = "vector_embeddings_1536"
 VECTOR_EMBEDDINGS_DIMENSION = 1536
+SQL_QUERY_DATABASE = "vector_db"
+SQL_QUERY_SCHEMA = "fiscal_consulting_demo"
+
+_SQL_TABLE_PATTERN = re.compile(r"(?im)(?:from|join)\s+([A-Za-z_\"`][A-Za-z0-9_.\"`]*)")
+_SQL_IDENTIFIER_SANITIZER = re.compile(r"[\"`]")
+_VALID_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _infer_table_from_sql(query: str | None) -> str | None:
+    if not query:
+        return None
+
+    for match in _SQL_TABLE_PATTERN.finditer(query):
+        identifier = match.group(1)
+        cleaned = _SQL_IDENTIFIER_SANITIZER.sub("", identifier).strip().rstrip(";,")
+        if " " in cleaned:
+            cleaned = cleaned.split()[0]
+        if "." in cleaned:
+            cleaned = cleaned.rsplit(".", 1)[-1]
+        if not cleaned:
+            continue
+        candidate_upper = cleaned.upper()
+        if candidate_upper in {"ONLY", "LATERAL"}:
+            continue
+        if not cleaned or not _VALID_IDENTIFIER.fullmatch(cleaned):
+            continue
+        cte_pattern = re.compile(rf"(?im)^\s*with\s+{re.escape(cleaned)}\s+as\b")
+        if cte_pattern.search(query):
+            continue
+        return cleaned
+
+    return None
 
 
 app = FastAPI(title="GenIA API", version="0.2.0")
@@ -143,11 +176,33 @@ async def execute_query(
     payload: schemas.ExecuteQueryRequest,
     services: AppServices = Depends(get_services),
 ) -> schemas.ExecuteQueryResponse:
+    target_database = SQL_QUERY_DATABASE
+    requested_database = (payload.database or "").strip()
+    if requested_database and requested_database != target_database:
+        logger.info(
+            "/execute_query requested database '%s'; using '%s' instead",
+            requested_database,
+            target_database,
+        )
+    inferred_table = _infer_table_from_sql(payload.query)
+    table_for_query = inferred_table or None
+    if table_for_query and payload.table and payload.table != table_for_query:
+        logger.info(
+            "/execute_query overriding table '%s' with inferred table '%s'",
+            payload.table,
+            table_for_query,
+        )
+    elif not table_for_query and payload.table:
+        logger.debug(
+            "/execute_query ignoring provided table '%s'; unable to infer table from SQL",
+            payload.table,
+        )
     try:
         rows = await services.pgvector_service.execute_query(
-            payload.database,
+            target_database,
             payload.query,
-            table=payload.table,
+            table=table_for_query,
+            schema=SQL_QUERY_SCHEMA,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -156,8 +211,8 @@ async def execute_query(
         raise HTTPException(status_code=502, detail=f"Failed to execute query: {exc}")
 
     return schemas.ExecuteQueryResponse(
-        database=payload.database,
-        table=payload.table,
+        database=target_database,
+        table=table_for_query,
         rows=rows,
     )
 
