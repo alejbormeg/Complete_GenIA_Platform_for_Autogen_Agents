@@ -15,7 +15,8 @@ NL2SQL_SYSTEM_PROMPT = (
     "4. Ensure you can handle a variety of query types and complexities, providing reliable and accurate SQL statements.\n"
     "5. When generating the SQL query, prioritize readability and meaningful results for the user. Avoid returning raw IDs or "
     "numbers when a descriptive value is available.\n"
-    "6. Once you have generated the final SQL query, respond with the query followed by 'Terminate' to end the conversation."
+    "6. Always return the SQL query without any additional commentary or explanation.\n"
+    "7. Once you have generated the final SQL query, respond with the query followed by 'Terminate' to end the conversation."
 )
 
 FEEDBACK_SYSTEM_PROMPT = (

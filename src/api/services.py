@@ -556,12 +556,12 @@ class PGVectorService:
         *,
         table: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> List[List]:
+    ) -> tuple[list[str], list[list[Any]]]:
         statement = query.strip()
         if not statement:
-            return []
+            return [], []
 
-        def _execute() -> List[List]:
+        def _execute() -> tuple[list[str], list[list[Any]]]:
             target_db = database or self.database_name
             self._verify_database(target_db)
             schema_name = self._normalize_schema(schema) if schema else None
@@ -585,11 +585,15 @@ class PGVectorService:
                     if schema_name:
                         cur.execute("SET search_path TO DEFAULT")
                     self.conn.commit()
-                    return []
-                rows = cur.fetchall()
+                    return [], []
+                # Collect column names from cursor description
+                columns = [d.name if hasattr(d, "name") else d[0] for d in cur.description]
+                rows_dicts = cur.fetchall()
                 if schema_name:
                     cur.execute("SET search_path TO DEFAULT")
-            return [list(row.values()) for row in rows]
+            # Order row values by columns to keep deterministic alignment
+            rows = [[row.get(col) for col in columns] for row in rows_dicts]
+            return columns, rows
 
         return await asyncio.to_thread(_execute)
 

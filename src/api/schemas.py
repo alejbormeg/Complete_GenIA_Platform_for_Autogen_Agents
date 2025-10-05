@@ -80,6 +80,9 @@ class ExecuteQueryRequest(BaseModel):
 class ExecuteQueryResponse(BaseModel):
     database: str
     table: Optional[str] = None
+    # Column labels for the returned rows (may be empty for non-SELECT statements)
+    columns: List[str] = Field(default_factory=list)
+    # Row values ordered by the above columns
     rows: List[List[Any]]
 
 

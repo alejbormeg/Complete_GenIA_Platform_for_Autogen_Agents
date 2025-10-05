@@ -198,7 +198,7 @@ async def execute_query(
             payload.table,
         )
     try:
-        rows = await services.pgvector_service.execute_query(
+        columns, rows = await services.pgvector_service.execute_query(
             target_database,
             payload.query,
             table=table_for_query,
@@ -213,6 +213,7 @@ async def execute_query(
     return schemas.ExecuteQueryResponse(
         database=target_database,
         table=table_for_query,
+        columns=columns,
         rows=rows,
     )
 

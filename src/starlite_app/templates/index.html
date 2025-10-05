@@ -619,13 +619,15 @@
       return null;
     }
 
-    function renderSqlTable(rows) {
+    function renderSqlTable({ rows, columns }) {
       sqlResults.innerHTML = '';
       if (!rows?.length) { sqlResults.textContent = 'Query executed. No rows returned.'; sqlResults.hidden = false; return; }
       const maxColumns = rows.reduce((m, r) => Math.max(m, r.length), 0);
       const table = document.createElement('table'); table.className = 'sql-table';
       const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
-      for (let col = 0; col < maxColumns; col += 1) { const th = document.createElement('th'); th.textContent = `col_${col + 1}`; headerRow.appendChild(th); }
+      // Prefer server-provided column names; fallback to generic labels
+      const safeColumns = Array.isArray(columns) && columns.length ? columns : Array.from({ length: maxColumns }, (_, i) => `col_${i + 1}`);
+      for (let col = 0; col < maxColumns; col += 1) { const th = document.createElement('th'); th.textContent = safeColumns[col] ?? `col_${col + 1}`; headerRow.appendChild(th); }
       thead.appendChild(headerRow); table.appendChild(thead);
       const tbody = document.createElement('tbody');
       for (const row of rows) { const tr = document.createElement('tr'); for (let col = 0; col < maxColumns; col += 1) { const td = document.createElement('td'); const value = row[col]; td.textContent = value == null ? '∅' : String(value); tr.appendChild(td);} tbody.appendChild(tr);} table.appendChild(tbody);
@@ -639,7 +641,7 @@
       const response = await fetch(`${API_BASE}/execute_query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.detail || 'Failed to execute SQL query');
-      return data.rows;
+      return { rows: data.rows || [], columns: data.columns || [] };
     }
 
     chatForm.addEventListener('submit', async (event) => {
@@ -670,7 +672,7 @@
 
         sqlPreview.hidden = false; sqlPreview.textContent = sql;
         const tableForQuery = inferTableFromSql(sql) || null;
-        try { const rows = await executeQuery(sql, tableForQuery); renderSqlTable(rows); }
+        try { const result = await executeQuery(sql, tableForQuery); renderSqlTable(result); }
         catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
       } catch (error) {
         console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';
