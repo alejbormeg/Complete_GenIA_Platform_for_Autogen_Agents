@@ -1,5 +1,5 @@
 -- Demo database for IberConsulting fiscal & labor advisory platform
--- Creates schema, tables, constraints and seed data for congress presentation
+-- Compatible with NL->SQL queries provided
 
 DROP SCHEMA IF EXISTS fiscal_consulting_demo CASCADE;
 CREATE SCHEMA fiscal_consulting_demo;
@@ -17,6 +17,7 @@ CREATE TYPE tax_kind AS ENUM ('CIT', 'VAT', 'IRPF', 'SOCIAL_SECURITY', 'WITHHOLD
 -- Master data
 CREATE TABLE offices (
     office_id      SERIAL PRIMARY KEY,
+    id             INTEGER GENERATED ALWAYS AS (office_id) STORED, -- compat: o.id
     name           TEXT NOT NULL,
     region         TEXT NOT NULL,
     city           TEXT NOT NULL,
@@ -30,13 +31,15 @@ CREATE TABLE offices (
 
 CREATE TABLE service_lines (
     service_line_id SERIAL PRIMARY KEY,
-    name            TEXT NOT NULL,
+    id              INTEGER GENERATED ALWAYS AS (service_line_id) STORED, -- compat: sl.id
+    name            TEXT NOT NULL,  -- ajustado en seed a 'Fiscal'|'Laboral'|'Contable'|'Legal'
     category        TEXT NOT NULL,
     description     TEXT
 );
 
 CREATE TABLE employees (
     employee_id     SERIAL PRIMARY KEY,
+    id              INTEGER GENERATED ALWAYS AS (employee_id) STORED, -- compat: e.id
     full_name       TEXT NOT NULL,
     email           TEXT UNIQUE NOT NULL,
     phone           TEXT,
@@ -51,8 +54,10 @@ CREATE TABLE employees (
 
 CREATE TABLE clients (
     client_id            SERIAL PRIMARY KEY,
+    id                   INTEGER GENERATED ALWAYS AS (client_id) STORED, -- compat: c.id
     legal_name           TEXT NOT NULL,
     trade_name           TEXT,
+    name                 TEXT GENERATED ALWAYS AS (COALESCE(trade_name, legal_name)) STORED, -- compat: c.name
     tax_id               TEXT UNIQUE NOT NULL,
     category             client_category NOT NULL,
     industry             TEXT,
@@ -80,6 +85,7 @@ CREATE TABLE client_offices (
 
 CREATE TABLE engagements (
     engagement_id        SERIAL PRIMARY KEY,
+    id                   INTEGER GENERATED ALWAYS AS (engagement_id) STORED, -- compat: g.id
     client_id            INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
     service_line_id      INTEGER NOT NULL REFERENCES service_lines(service_line_id) ON DELETE RESTRICT,
     lead_consultant_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
@@ -100,6 +106,7 @@ CREATE TABLE engagement_offices (
 
 CREATE TABLE compliance_cases (
     case_id            SERIAL PRIMARY KEY,
+    id                 INTEGER GENERATED ALWAYS AS (case_id) STORED, -- opcional
     engagement_id      INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
     case_code          TEXT UNIQUE NOT NULL,
     case_type          TEXT NOT NULL,
@@ -177,10 +184,12 @@ CREATE TABLE financial_statements (
 
 CREATE TABLE invoices (
     invoice_id      SERIAL PRIMARY KEY,
+    id              INTEGER GENERATED ALWAYS AS (invoice_id) STORED, -- compat: i.id
     engagement_id   INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
     issued_by_id    INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
     invoice_number  TEXT UNIQUE NOT NULL,
     issue_date      DATE NOT NULL,
+    issued_at       DATE GENERATED ALWAYS AS (issue_date) STORED, -- compat: i.issued_at
     due_date        DATE NOT NULL,
     amount_total    NUMERIC(12,2) NOT NULL,
     status          invoice_status NOT NULL,
@@ -189,6 +198,7 @@ CREATE TABLE invoices (
 
 CREATE TABLE invoice_items (
     invoice_item_id SERIAL PRIMARY KEY,
+    id              INTEGER GENERATED ALWAYS AS (invoice_item_id) STORED, -- compat opcional
     invoice_id      INTEGER NOT NULL REFERENCES invoices(invoice_id) ON DELETE CASCADE,
     item_description TEXT NOT NULL,
     quantity        INTEGER NOT NULL DEFAULT 1,
@@ -205,16 +215,17 @@ CREATE INDEX idx_financial_statements_period ON financial_statements(period_star
 
 -- Seed data ---------------------------------------------------------------
 INSERT INTO offices (name, region, city, address, phone, email, opened_date, headcount_cap) VALUES
-    ('Sede Central Madrid', 'Centro', 'Madrid', 'Paseo de la Castellana 120', '+34 91 555 0101', 'madrid@iberconsulting.es', '2005-03-01', 120),
+    ('Madrid', 'Centro', 'Madrid', 'Paseo de la Castellana 120', '+34 91 555 0101', 'madrid@iberconsulting.es', '2005-03-01', 120),
     ('Oficina Barcelona', 'Cataluña', 'Barcelona', 'Avinguda Diagonal 640', '+34 93 555 0145', 'barcelona@iberconsulting.es', '2010-06-15', 80),
     ('Oficina Valencia', 'Levante', 'Valencia', 'Carrer de Colón 34', '+34 96 555 0890', 'valencia@iberconsulting.es', '2015-02-20', 60),
     ('Oficina Sevilla', 'Andalucía', 'Sevilla', 'Avenida de la Palmera 25', '+34 95 555 0670', 'sevilla@iberconsulting.es', '2018-09-03', 50);
 
+-- Ajuste de nombres para compatibilidad con sl.name = 'Fiscal'
 INSERT INTO service_lines (name, category, description) VALUES
-    ('Asesoría Fiscal Integral', 'Fiscal', 'Planificación y cumplimiento fiscal corporativo en territorio español y comunitario'),
-    ('Consultoría Laboral y Seguridad Social', 'Laboral', 'Gestión de nóminas, convenios colectivos y relaciones laborales'),
-    ('Contabilidad y Reporting', 'Contable', 'Elaboración de estados financieros y reporting regulatorio'),
-    ('Gobierno Corporativo y Riesgos', 'Legal', 'Diseño de modelos de control interno y prevención de riesgos');
+    ('Fiscal',   'Fiscal',   'Asesoría Fiscal Integral'),
+    ('Laboral',  'Laboral',  'Consultoría Laboral y Seguridad Social'),
+    ('Contable', 'Contable', 'Contabilidad y Reporting'),
+    ('Legal',    'Legal',    'Gobierno Corporativo y Riesgos');
 
 INSERT INTO employees (full_name, email, phone, role, grade, is_manager, hire_date, office_id, service_line_id, salary_band) VALUES
     ('Laura Martín', 'laura.martin@iberconsulting.es', '+34 600 111 201', 'Socia Fiscal', 'Partner', TRUE, '2010-05-15', 1, 1, 95000.00),
@@ -304,12 +315,13 @@ INSERT INTO financial_statements (client_id, engagement_id, statement_type, peri
     (3, 5, 'quarterly', '2023-10-01', '2023-12-31', 1485000.00, 1125000.00, 315000.00, 84500.00, 4, 1, '2024-01-10'),
     (2, 3, 'annual', '2023-01-01', '2023-12-31', 6850000.00, 5620000.00, 1890000.00, 354000.00, 8, 2, '2024-02-20');
 
+-- Facturas originales (enero-feb 2024)
 INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
-    (1, 1, 'INV-2024-001', '2024-01-05', '2024-01-31', 4500.00, 'paid', 'Retainer mensual enero 2024'),
-    (2, 3, 'INV-2024-015', '2024-01-05', '2024-01-31', 2500.00, 'paid', 'Servicio nómina enero 2024'),
+    (1, 1, 'INV-2024-001', '2024-01-05', '2024-01-31', 4500.00, 'paid',   'Retainer mensual enero 2024'),
+    (2, 3, 'INV-2024-015', '2024-01-05', '2024-01-31', 2500.00, 'paid',   'Servicio nómina enero 2024'),
     (3, 2, 'INV-2024-027', '2024-02-01', '2024-02-28', 4250.00, 'issued', 'Outsourcing laboral febrero 2024'),
-    (5, 4, 'INV-2024-041', '2024-01-12', '2024-02-10', 1800.00, 'overdue', 'Reporting financiero Q4 2023'),
-    (7, 5, 'INV-2024-052', '2024-01-20', '2024-02-20', 900.00, 'paid', 'Retainer fiscal cooperativa');
+    (5, 4, 'INV-2024-041', '2024-01-12', '2024-02-10', 1800.00, 'overdue','Reporting financiero Q4 2023'),
+    (7, 5, 'INV-2024-052', '2024-01-20', '2024-02-20', 900.00,  'paid',   'Retainer fiscal cooperativa');
 
 INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) VALUES
     (1, 'Retainer asesoría fiscal mes enero', 1, 4500.00),
@@ -320,4 +332,19 @@ INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) V
     (4, 'Reunión extraordinaria consejo médico', 1, 300.00),
     (5, 'Retainer fiscal mensual', 1, 900.00);
 
--- End of seed script
+-- NUEVAS facturas 2025 para que el TOP-5 últimos 12 meses devuelva datos (hoy 2025-10-05)
+-- Nota: Asumiendo invoice_id autoincremental, estas serán 6..10
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    (1, 1, 'INV-2025-101', '2025-01-15', '2025-02-15', 4700.00, 'paid',   'Retainer enero 2025'),
+    (2, 3, 'INV-2025-115', '2025-03-01', '2025-03-31', 2600.00, 'paid',   'Nóminas marzo 2025'),
+    (3, 2, 'INV-2025-203', '2025-06-10', '2025-07-10', 4250.00, 'issued', 'Outsourcing junio 2025'),
+    (5, 4, 'INV-2025-305', '2025-09-20', '2025-10-20', 2000.00, 'paid',   'Reporting trimestral Q3 2025'),
+    (7, 5, 'INV-2025-402', '2025-04-20', '2025-05-20', 900.00,  'paid',   'Retainer fiscal abril 2025');
+
+INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) VALUES
+    (6, 'Retainer asesoría fiscal mes enero 2025', 1, 4700.00),
+    (7, 'Gestión nóminas marzo (168 empleados)',   1, 2600.00),
+    (8, 'Honorarios outsourcing laboral junio',    1, 3800.00),
+    (8, 'Ajuste auditoría Málaga',                 1, 450.00),
+    (9, 'Reporting trimestral Q3 2025',            1, 2000.00),
+    (10,'Retainer fiscal mensual',                 1, 900.00);

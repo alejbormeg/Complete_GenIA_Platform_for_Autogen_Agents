@@ -53,7 +53,8 @@ class NL2SQLWorkflow:
         table: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> NL2SQLResult:
-        k = top_k or getattr(self.settings, "pgvector_top_k", 5)
+        # Si no se especifica top_k, recuperamos TODOS los vectores disponibles
+        k = top_k
 
         default_vec_table = getattr(self.settings, "vector_table", "vector_embeddings_1536")
         if table and "vector_embeddings" in table:
@@ -124,14 +125,9 @@ def _format_context(retrievals: List[RetrievalResult]) -> str:
     if not retrievals:
         return "No relevant documents were found in the vector store."
 
-    formatted = []
-    for item in retrievals:
-        meta = {k: v for k, v in item.metadata.items() if v is not None}
-        meta_str = ", ".join(f"{key}={value}" for key, value in meta.items())
-        formatted.append(
-            f"Score: {item.score:.4f}\nMetadata: {meta_str or 'none'}\nContent: {item.text}"
-        )
-    return "\n\n".join(formatted)
+    sorted_items = sorted(retrievals, key=lambda x: x.metadata.get("id", 0))
+
+    return "\n\n".join(item.text for item in sorted_items)
 
 
 def _strip_termination(message: str) -> str:

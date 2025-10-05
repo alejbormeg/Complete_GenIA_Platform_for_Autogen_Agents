@@ -86,8 +86,14 @@ def _vectorize(query: str, settings: LangChainAppSettings) -> List[float]:
     # embed_query returns a list[float]
     return embedder.embed_query(query)
 
-def _build_select_sql(table: str, filter_db: Optional[str]) -> str:
+def _build_select_sql(
+    table: str,
+    filter_db: Optional[str],
+    *,
+    limit_k: Optional[int] = None,
+) -> str:
     where = "WHERE database = %s" if filter_db else ""
+    limit_clause = "" if (limit_k is None or int(limit_k) <= 0) else "LIMIT %s"
     # Usamos una CTE 'q(v)' para referenciar el vector una sola vez
     return f"""
         WITH q AS (SELECT %s::vector AS v)
@@ -100,7 +106,7 @@ def _build_select_sql(table: str, filter_db: Optional[str]) -> str:
         FROM public.{table}, q
         {where}
         ORDER BY embedding <=> q.v ASC
-        LIMIT %s
+        {limit_clause}
     """
 
 def retrieve(
@@ -109,8 +115,8 @@ def retrieve(
     *,
     table: Optional[str] = None,
     database_filter: Optional[str] = None,
-    k: int = 5,
-    min_score: float = 0.15,
+    k: Optional[int] = None,
+    min_score: float = 0.0,
 ) -> List[RetrievalResult]:
     table = (table or settings.vector_table).strip()
     if not table:
@@ -125,14 +131,15 @@ def retrieve(
         if not (shape["has_embedding"] and shape["has_text"]):
             raise RuntimeError(f"Table '{table}' missing 'embedding' or 'text' columns: {shape}")
 
-        sql = _build_select_sql(table, filter_db=database_filter)
+        sql = _build_select_sql(table, filter_db=database_filter, limit_k=k)
 
         # ⚠️ Orden correcto de placeholders:
-        # 1) vector (CTE q)  2) (opcional) database_filter  3) limit
+        # 1) vector (CTE q)  2) (opcional) database_filter  3) (opcional) limit
         params: List[Any] = [query_vec]
         if database_filter:
             params.append(database_filter)
-        params.append(int(k))
+        if k is not None and int(k) > 0:
+            params.append(int(k))
 
         with conn.cursor() as cur:
             cur.execute(sql, params)
@@ -153,7 +160,7 @@ def retrieve(
                         "database": row.get("database"),
                         "table": table,
                         "metric": "cosine",
-                        "k": k,
+                        "k": k if (k is not None and int(k) > 0) else "ALL",
                     },
                 )
             )
