@@ -120,16 +120,26 @@ def retrieve(
 ) -> List[RetrievalResult]:
     table = (table or settings.vector_table).strip()
     if not table:
-        raise ValueError("Vector table name cannot be empty")
+        # No vector table name available — return no context gracefully
+        logger.warning("No vector table configured; continuing without context")
+        return []
 
-    query_vec = _vectorize(query, settings)
-
+    # First, check table availability/shape before computing embeddings to avoid
+    # unnecessary calls when RAG context isn't possible.
     conn = _connect(settings)
     try:
         _ensure_pgvector_adapter(conn)
         shape = _detect_table_shape(conn, table)
-        if not (shape["has_embedding"] and shape["has_text"]):
-            raise RuntimeError(f"Table '{table}' missing 'embedding' or 'text' columns: {shape}")
+        if not (shape.get("has_embedding") and shape.get("has_text")):
+            logger.warning(
+                "RAG table '%s' not ready (shape=%s); continuing without context",
+                table,
+                shape,
+            )
+            return []
+
+        # Table looks good — proceed to embed the query and retrieve neighbors
+        query_vec = _vectorize(query, settings)
 
         sql = _build_select_sql(table, filter_db=database_filter, limit_k=k)
 
