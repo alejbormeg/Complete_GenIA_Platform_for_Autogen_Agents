@@ -83,7 +83,7 @@ class NL2SQLWorkflow:
             "plan": plan,
             "context": context,
         })
-        sql_query = _strip_termination(sql_raw)
+        sql_query = _strip_code_fences(_strip_termination(sql_raw))
         feedback_raw = self._feedback.invoke({
             "question": question,
             "plan": plan,
@@ -137,3 +137,17 @@ def _strip_termination(message: str) -> str:
     if lower.endswith("terminate"):
         cleaned = cleaned[: -len("terminate")].rstrip(" -:\n")
     return cleaned
+
+
+def _strip_code_fences(message: str) -> str:
+    """If the message is a single fenced code block, return its inner content.
+
+    Supports optional language label after the opening fence. Preserves
+    interior newlines and spacing.
+    """
+    text = message.strip()
+    import re
+    m = re.match(r"^```[a-zA-Z0-9_+\-]*\n([\s\S]*?)\n```$", text)
+    if m:
+        return m.group(1)
+    return message

@@ -166,7 +166,23 @@
     .message { margin-bottom: 1rem; padding: .75rem; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--border); }
     .message:last-child { margin-bottom: 0; }
     .message strong { font-size: .88rem; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); }
-    .message-content { margin-top: .45rem; font-size: .96rem; line-height: 1.5; }
+    .message-content { margin-top: .45rem; font-size: .96rem; line-height: 1.5; white-space: pre-wrap; }
+
+    /* simple code block styling inside messages */
+    .message .code-block {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .86rem; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border);
+      padding: .7rem .8rem; margin-top: .4rem; white-space: pre-wrap; overflow-x: auto;
+    }
+
+    /* markdown styles within messages */
+    .message .md h3 { margin: .2rem 0 .4rem; font-size: 1rem; }
+    .message .md h4 { margin: .2rem 0 .35rem; font-size: .98rem; }
+    .message .md p { margin: .35rem 0; }
+    .message .md ul, .message .md ol { margin: .35rem 0 .35rem 1.2rem; }
+    .message .md li { margin: .2rem 0; }
+    .message .md code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #eef2ff; padding: 0 .25rem; border-radius: 4px; border: 1px solid #e0e7ff; }
+    .message .md blockquote { margin: .35rem 0; padding: .35rem .6rem; border-left: 3px solid #c7d2fe; background: #f8fafc; border-radius: 4px; }
 
     /* token stream accent on last assistant message */
     .message.assistant .message-content span.token { display: inline-block; min-width: 0.28ch; border-right: 1px solid var(--accent); animation: caret 900ms steps(1) infinite; }
@@ -515,6 +531,165 @@
       }
     }
 
+    function toTitleCase(text) {
+      if (!text) return '';
+      return text
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function friendlyLabel(role, name) {
+      const map = { planner: 'Planner', retriever: 'Retriever', sql_agent: 'SQL Agent', feedback: 'Feedback', user: 'User', assistant: 'Assistant' };
+      if (name && map[name.toLowerCase()]) return map[name.toLowerCase()];
+      if (name) return toTitleCase(name);
+      if (role && map[role.toLowerCase()]) return map[role.toLowerCase()];
+      return toTitleCase(role || 'Message');
+    }
+
+    // --- Minimal, safe Markdown renderer (subset) ---
+    function applyInlineFormatting(text) {
+      const frag = document.createDocumentFragment();
+      if (!text) return frag;
+      const codeSplit = text.split(/(`[^`]*`)/g);
+      for (const part of codeSplit) {
+        if (part.length >= 2 && part.startsWith('`') && part.endsWith('`')) {
+          const code = document.createElement('code');
+          code.textContent = part.slice(1, -1);
+          frag.appendChild(code);
+          continue;
+        }
+        // links (http/https only)
+        let remaining = part;
+        const linkRe = /\[([^\]]+)\]\((https?:[^\)\s]+)\)/g;
+        let lastIndex = 0; let m;
+        const tmp = document.createDocumentFragment();
+        while ((m = linkRe.exec(part)) !== null) {
+          const before = part.slice(lastIndex, m.index);
+          if (before) tmp.appendChild(document.createTextNode(before));
+          const a = document.createElement('a');
+          a.textContent = m[1]; a.href = m[2]; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          tmp.appendChild(a);
+          lastIndex = m.index + m[0].length;
+        }
+        const tail = part.slice(lastIndex);
+        if (tmp.childNodes.length) { if (tail) tmp.appendChild(document.createTextNode(tail)); remaining = ''; frag.appendChild(tmp); }
+        if (remaining) {
+          // bold then italics (non-greedy)
+          const chunks = [];
+          let s = remaining; let match;
+          const boldRe = /\*\*([^*]+)\*\*/g;
+          let idx = 0;
+          while ((match = boldRe.exec(s)) !== null) {
+            if (match.index > idx) chunks.push({ t: 'text', v: s.slice(idx, match.index) });
+            chunks.push({ t: 'strong', v: match[1] });
+            idx = match.index + match[0].length;
+          }
+          if (idx < s.length) chunks.push({ t: 'text', v: s.slice(idx) });
+          const out = document.createDocumentFragment();
+          for (const ch of chunks) {
+            if (ch.t === 'text') {
+              // italics inside leftovers
+              let rest = ch.v; let iMatch; const italRe = /(^|\W)\*([^*]+)\*(?=\W|$)/g; let i = 0; const sub = document.createDocumentFragment();
+              while ((iMatch = italRe.exec(rest)) !== null) {
+                const pre = rest.slice(i, iMatch.index + iMatch[1].length);
+                if (pre) sub.appendChild(document.createTextNode(pre));
+                const em = document.createElement('em'); em.textContent = iMatch[2]; sub.appendChild(em);
+                i = iMatch.index + iMatch[0].length;
+              }
+              const tail2 = rest.slice(i);
+              if (tail2) sub.appendChild(document.createTextNode(tail2));
+              out.appendChild(sub);
+            } else if (ch.t === 'strong') { const b = document.createElement('strong'); b.textContent = ch.v; out.appendChild(b); }
+          }
+          frag.appendChild(out);
+        }
+      }
+      return frag;
+    }
+
+    function renderMarkdown(mdText) {
+      const container = document.createElement('div');
+      container.className = 'md';
+      if (!mdText || typeof mdText !== 'string') return container;
+
+      const lines = mdText.replace(/\r\n?/g, '\n').split('\n');
+      let i = 0; let inCode = false; let codeLang = ''; let codeLines = [];
+      let listMode = null; let listItems = [];
+      let paraLines = [];
+
+      function flushParagraph() {
+        if (!paraLines.length) return;
+        const p = document.createElement('p');
+        p.appendChild(applyInlineFormatting(paraLines.join(' ')));
+        container.appendChild(p); paraLines = [];
+      }
+      function flushList() {
+        if (!listMode || !listItems.length) return;
+        const el = document.createElement(listMode === 'ol' ? 'ol' : 'ul');
+        for (const item of listItems) { const li = document.createElement('li'); li.appendChild(applyInlineFormatting(item)); el.appendChild(li); }
+        container.appendChild(el); listMode = null; listItems = [];
+      }
+      function flushCode() {
+        if (!inCode) return;
+        const pre = document.createElement('pre'); pre.className = 'code-block'; pre.textContent = codeLines.join('\n'); container.appendChild(pre);
+        inCode = false; codeLang = ''; codeLines = [];
+      }
+
+      while (i < lines.length) {
+        const line = lines[i];
+        // fenced code
+        const fence = line.match(/^```\s*([A-Za-z0-9_+-]*)\s*$/);
+        if (fence) {
+          if (inCode) { flushParagraph(); flushList(); flushCode(); }
+          else { flushParagraph(); flushList(); inCode = true; codeLang = fence[1] || ''; }
+          i += 1; continue;
+        }
+        if (inCode) { codeLines.push(line); i += 1; continue; }
+
+        // blank line -> flush paragraph/list
+        if (!line.trim()) { flushParagraph(); flushList(); i += 1; continue; }
+
+        // headings
+        const h = line.match(/^(#{1,6})\s+(.+)$/);
+        if (h) {
+          flushParagraph(); flushList();
+          const level = Math.min(h[1].length, 4); // keep headings small in bubbles
+          const hx = document.createElement('h' + (level + 2));
+          hx.textContent = h[2].trim();
+          container.appendChild(hx);
+          i += 1; continue;
+        }
+
+        // blockquote
+        const bq = line.match(/^>\s?(.*)$/);
+        if (bq) {
+          flushParagraph(); flushList();
+          const q = document.createElement('blockquote'); q.appendChild(applyInlineFormatting(bq[1])); container.appendChild(q);
+          i += 1; continue;
+        }
+
+        // lists
+        const ul = line.match(/^\s*[-*+]\s+(.+)$/);
+        const ol = line.match(/^\s*\d+\.\s+(.+)$/);
+        if (ul || ol) {
+          flushParagraph();
+          const content = (ul ? ul[1] : ol[1]).trim();
+          const mode = ol ? 'ol' : 'ul';
+          if (listMode && listMode !== mode) flushList();
+          listMode = mode; listItems.push(content);
+          i += 1; continue;
+        }
+
+        // paragraph accumulation
+        paraLines.push(line.trim());
+        i += 1;
+      }
+      flushParagraph(); flushList(); flushCode();
+      return container;
+    }
+
     function renderMessages(messages) {
       chatMessages.innerHTML = '';
       if (!messages?.length) {
@@ -526,15 +701,22 @@
         wrapper.className = 'message ' + (message.role === 'assistant' ? 'assistant' : '');
 
         const heading = document.createElement('strong');
-        const label = message.name ? `${message.role} • ${message.name}` : message.role;
-        heading.textContent = label.toUpperCase();
+        heading.textContent = friendlyLabel(message.role, message.name);
         wrapper.appendChild(heading);
 
         const fragment = document.createElement('div');
         fragment.className = 'message-content';
         if (message.content) {
-          const txt = message.content.trim();
-          fragment.innerHTML = (message.role === 'assistant') ? `${txt} <span class="token"></span>` : txt;
+          const txt = String(message.content).trim();
+          // Render markdown subset safely
+          const md = renderMarkdown(txt);
+          fragment.appendChild(md);
+          if (message.role === 'assistant') {
+            const caret = document.createElement('span');
+            caret.className = 'token';
+            fragment.appendChild(document.createTextNode(' '));
+            fragment.appendChild(caret);
+          }
         } else if (message.function_call) {
           fragment.textContent = JSON.stringify(message.function_call, null, 2);
         } else {

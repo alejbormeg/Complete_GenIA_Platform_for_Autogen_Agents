@@ -610,17 +610,16 @@ class AgentsChatService:
             return "No supporting context retrieved from the vector store."
 
         formatted: List[str] = []
-        for idx, item in enumerate(rows, start=1):
+        for item in rows:
             text = (item.get("text") or "").strip()
-            if len(text) > 400:
-                text = text[:400].rstrip() + "…"
+            if len(text) > 220:
+                text = text[:220].rstrip() + "…"
             score = item.get("score")
-            score_label = f"score={score:.4f}" if isinstance(score, (int, float)) else "score=n/a"
+            score_str = f"{score:.4f}" if isinstance(score, (int, float)) else "n/a"
             metadata = item.get("metadata") or {}
-            meta_pairs = ", ".join(f"{key}={value}" for key, value in metadata.items()) or "none"
-            formatted.append(
-                f"{idx}. {score_label} | metadata: {meta_pairs}\n   {text}"
-            )
+            # Compact metadata summary
+            meta_pairs = ", ".join(f"{k}={v}" for k, v in list(metadata.items())[:3]) or "none"
+            formatted.append(f"- {text} (score: {score_str}; metadata: {meta_pairs})")
         return "\n".join(formatted)
 
     @staticmethod
