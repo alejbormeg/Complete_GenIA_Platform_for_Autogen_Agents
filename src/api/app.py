@@ -218,6 +218,27 @@ async def execute_query(
     )
 
 
+@app.post("/generate_report", response_model=schemas.GenerateReportResponse)
+async def generate_report(
+    payload: schemas.GenerateReportRequest,
+    services: AppServices = Depends(get_services),
+) -> schemas.GenerateReportResponse:
+    try:
+        filename, markdown = services.report_service.generate_markdown_report(
+            question=payload.question,
+            sql_query=payload.sql,
+            columns=payload.columns,
+            rows=payload.rows,
+            plan=payload.plan,
+            feedback=payload.feedback,
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate report")
+        raise HTTPException(status_code=502, detail=f"Failed to generate report: {exc}")
+
+    return schemas.GenerateReportResponse(filename=filename, markdown=markdown)
+
+
 @app.post("/upload_md", response_model=schemas.UploadMarkdownResponse)
 async def upload_md(
     file: UploadFile,

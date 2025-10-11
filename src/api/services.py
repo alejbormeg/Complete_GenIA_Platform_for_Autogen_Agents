@@ -18,6 +18,8 @@ from psycopg2.extras import RealDictCursor
 from tenacity import after_log, before_log, retry, stop_after_delay, wait_exponential
 
 from langchain_app.orchestration.nl2sql_workflow import NL2SQLResult, NL2SQLWorkflow
+from langchain_app.agents.chains import build_chat_model, build_report_chain
+from langchain_app.settings import LangChainAppSettings
 
 # Load .env for local dev; in containers Compose env wins because override=False
 from dotenv import load_dotenv
@@ -663,6 +665,88 @@ class AgentsChatService:
         return self._build_messages(result)
 
 
+class ReportService:
+    """Builds a Markdown report from question, SQL, and execution results."""
+
+    def __init__(self, settings: Optional[LangChainAppSettings] = None) -> None:
+        self.settings = settings or LangChainAppSettings.from_env()
+        model = build_chat_model(self.settings)
+        self._report = build_report_chain(model)
+
+    @staticmethod
+    def _escape_cell(value: Any) -> str:
+        if value is None:
+            return "∅"
+        text = str(value)
+        # Escape pipes to avoid breaking Markdown table structure
+        return text.replace("|", "\\|")
+
+    @classmethod
+    def _to_markdown_table(
+        cls, columns: List[str], rows: List[List[Any]], max_rows: int = 50
+    ) -> str:
+        cols = [cls._escape_cell(c) for c in (columns or [])]
+        if not cols:
+            # Fallback generic column headers
+            max_len = max((len(r) for r in rows), default=0)
+            cols = [f"col_{i+1}" for i in range(max_len)]
+        header = "| " + " | ".join(cols) + " |"
+        sep = "| " + " | ".join(["---"] * len(cols)) + " |"
+        lines = [header, sep]
+        for idx, row in enumerate(rows or []):
+            if idx >= max_rows:
+                lines.append(f"| … |" + (" |" * (len(cols) - 1)))
+                break
+            values = [cls._escape_cell(row[i] if i < len(row) else None) for i in range(len(cols))]
+            lines.append("| " + " | ".join(values) + " |")
+        return "\n".join(lines)
+
+    def generate_markdown_report(
+        self,
+        *,
+        question: str,
+        sql_query: str,
+        columns: List[str],
+        rows: List[List[Any]],
+        plan: Optional[str] = None,
+        feedback: Optional[str] = None,
+    ) -> tuple[str, str]:
+        import datetime as _dt
+
+        results_markdown = self._to_markdown_table(columns, rows)
+        try:
+            markdown = self._report.invoke(
+                {
+                    "question": question,
+                    "sql_query": sql_query,
+                    "results_markdown": results_markdown,
+                    "plan": (plan or "").strip(),
+                    "feedback": (feedback or "").strip(),
+                }
+            ).strip()
+        except Exception as exc:  # pragma: no cover - fallback path
+            logger.warning("Report LLM generation failed, using fallback: %s", exc)
+            # Fallback determinista en español
+            summary_rows = len(rows or [])
+            markdown = (
+                "## Informe NL→SQL\n\n"
+                f"### Resumen ejecutivo\n- Filas mostradas: {summary_rows}\n- Columnas: {len(columns or [])}\n\n"
+                f"### Interpretación de resultados\nLos datos se presentan para revisión ejecutiva. Para un análisis más profundo podrían requerirse segmentaciones o periodos adicionales.\n\n"
+                f"### Pregunta\n{question}\n\n"
+                f"### Consulta SQL\n```sql\n{sql_query}\n```\n\n"
+                f"### Resultados\n{results_markdown}\n\n"
+            )
+            if plan:
+                markdown += f"### Plan\n- {plan.replace('\n', '\n- ')}\n\n"
+            if feedback:
+                markdown += f"### Feedback\n- {feedback.replace('\n', '\n- ')}\n\n"
+            markdown += "### Notas\nInforme generado automáticamente por GenIA Platform.\n"
+
+        now = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = f"informe-nl2sql-{now}.md"
+        return filename, markdown
+
+
 # ---------------------------------------------------------------------------
 # Service container exposed to the FastAPI app
 # ---------------------------------------------------------------------------
@@ -674,6 +758,7 @@ class AppServices:
     vector_service: VectorService
     pgvector_service: PGVectorService
     agents_chat_service: AgentsChatService
+    report_service: ReportService
 
 
 def build_services() -> AppServices:
@@ -681,9 +766,11 @@ def build_services() -> AppServices:
     vector_service = VectorService()
     pgvector_service = PGVectorService(conn)
     agents_chat_service = AgentsChatService()
+    report_service = ReportService()
     return AppServices(
         pg_conn=conn,
         vector_service=vector_service,
         pgvector_service=pgvector_service,
         agents_chat_service=agents_chat_service,
+        report_service=report_service,
     )

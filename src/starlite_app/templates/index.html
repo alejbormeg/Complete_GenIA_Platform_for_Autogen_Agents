@@ -337,7 +337,8 @@
             <div class="sql-row">
               <h3>Generated SQL</h3>
               <div class="sql-actions">
-                <button id="copy-sql" class="secondary" type="button">Copy</button>
+                <button id="copy-sql" class="secondary" type="button">Copiar SQL</button>
+                <button id="download-report" class="secondary" type="button" disabled>Descargar Informe</button>
               </div>
             </div>
             <div id="sql-preview" class="sql-preview" hidden></div>
@@ -810,6 +811,11 @@
       return { rows: data.rows || [], columns: data.columns || [] };
     }
 
+    let lastMessages = [];
+    let lastSql = null;
+    let lastResult = { rows: [], columns: [] };
+    let lastPrompt = '';
+
     chatForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       chatStatus.textContent = '';
@@ -817,6 +823,7 @@
 
       const prompt = chatInput.value.trim();
       if (!prompt) { chatStatus.textContent = 'Please provide a question for the agents.'; return; }
+      lastPrompt = prompt;
 
       const selectedTable = chatDatabase.value.trim();
       const chatPayload = { task: prompt };
@@ -830,20 +837,72 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data?.detail || 'Agentic chat failed');
 
-        renderMessages(data.messages);
+        lastMessages = Array.isArray(data.messages) ? data.messages : [];
+        renderMessages(lastMessages);
         chatStatus.textContent = 'Conversation updated.';
 
-        const sql = extractSql(data.messages);
+        const sql = extractSql(lastMessages);
         if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'No SQL detected in agent response yet.'; sqlResults.hidden = true; return; }
 
-        sqlPreview.hidden = false; sqlPreview.textContent = sql;
+        sqlPreview.hidden = false; sqlPreview.textContent = sql; lastSql = sql;
         const tableForQuery = inferTableFromSql(sql) || null;
-        try { const result = await executeQuery(sql, tableForQuery); renderSqlTable(result); }
+        try { const result = await executeQuery(sql, tableForQuery); lastResult = result; renderSqlTable(result); document.getElementById('download-report').disabled = false; }
         catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
       } catch (error) {
         console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';
       } finally { chatForm.classList.remove('loading'); }
     });
+
+    // Copy SQL button
+    document.getElementById('copy-sql').addEventListener('click', async () => {
+      const sql = (sqlPreview.textContent || '').trim();
+      if (!sql) return;
+      try { await navigator.clipboard.writeText(sql); } catch (_) {}
+    });
+
+    function findMessageContentByName(messages, name) {
+      if (!Array.isArray(messages)) return '';
+      for (const m of messages) {
+        if ((m?.name || '').toLowerCase() === String(name).toLowerCase()) {
+          const content = typeof m.content === 'string' ? m.content.trim() : '';
+          if (content) return content;
+        }
+      }
+      return '';
+    }
+
+    async function generateAndDownloadReport() {
+      const button = document.getElementById('download-report');
+      if (!lastSql || !lastResult) return;
+      button.disabled = true; button.textContent = 'Preparando…';
+      try {
+        const payload = {
+          question: lastPrompt || '',
+          sql: lastSql,
+          columns: Array.isArray(lastResult.columns) ? lastResult.columns : [],
+          rows: Array.isArray(lastResult.rows) ? lastResult.rows : [],
+          plan: findMessageContentByName(lastMessages, 'planner'),
+          feedback: findMessageContentByName(lastMessages, 'feedback'),
+        };
+        const response = await fetch(`${API_BASE}/generate_report`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.detail || 'Failed to generate report');
+        const markdown = String(data.markdown || '');
+        const filename = String(data.filename || 'nl2sql-report.md');
+        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        alert(err instanceof Error ? err.message : 'Failed to generate report');
+      } finally {
+        button.textContent = 'Descargar Informe'; button.disabled = false;
+      }
+    }
+
+    document.getElementById('download-report').addEventListener('click', generateAndDownloadReport);
 
     // Initialize default UI state
     loadDatabases();

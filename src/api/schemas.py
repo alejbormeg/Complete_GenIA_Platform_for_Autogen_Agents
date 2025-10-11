@@ -86,6 +86,22 @@ class ExecuteQueryResponse(BaseModel):
     rows: List[List[Any]]
 
 
+class GenerateReportRequest(BaseModel):
+    """Payload for generating a downloadable Markdown report."""
+
+    question: str
+    sql: str
+    columns: List[str] = Field(default_factory=list)
+    rows: List[List[Any]] = Field(default_factory=list)
+    plan: Optional[str] = None
+    feedback: Optional[str] = None
+
+
+class GenerateReportResponse(BaseModel):
+    filename: str
+    markdown: str
+
+
 class UploadMarkdownResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

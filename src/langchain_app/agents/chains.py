@@ -10,6 +10,7 @@ from .prompts import (
     FEEDBACK_SYSTEM_PROMPT,
     NL2SQL_SYSTEM_PROMPT,
     PLANNER_SYSTEM_PROMPT,
+    REPORT_SYSTEM_PROMPT,
 )
 from ..settings import LangChainAppSettings
 
@@ -61,6 +62,29 @@ def build_feedback_chain(model: ChatOpenAI) -> StrOutputParser:
             ("human", "Planning notes: {plan}"),
             ("human", "Candidate SQL query:\n{sql_query}"),
             ("human", "Retrieved context:\n{context}"),
+        ]
+    )
+    return prompt | model | StrOutputParser()
+
+
+def build_report_chain(model: ChatOpenAI) -> StrOutputParser:
+    """Return a runnable that composes a downloadable Markdown report.
+
+    Expects the following input variables:
+    - question: str
+    - sql_query: str
+    - results_markdown: str (pre-rendered Markdown table of results)
+    - plan: str (optional)
+    - feedback: str (optional)
+    """
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", REPORT_SYSTEM_PROMPT),
+            ("human", "Original question: {question}"),
+            ("human", "SQL query to reproduce:\n```sql\n{sql_query}\n```"),
+            ("human", "Results table (Markdown):\n{results_markdown}"),
+            ("human", "Planner notes (optional): {plan}"),
+            ("human", "Feedback review (optional): {feedback}"),
         ]
     )
     return prompt | model | StrOutputParser()
