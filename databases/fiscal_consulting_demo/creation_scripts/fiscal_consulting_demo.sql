@@ -17,7 +17,7 @@ CREATE TYPE tax_kind AS ENUM ('CIT', 'VAT', 'IRPF', 'SOCIAL_SECURITY', 'WITHHOLD
 -- Master data
 CREATE TABLE offices (
     office_id      SERIAL PRIMARY KEY,
-    id             INTEGER GENERATED ALWAYS AS (office_id) STORED, -- compat: o.id
+    id             INTEGER GENERATED ALWAYS AS (office_id) STORED,
     name           TEXT NOT NULL,
     region         TEXT NOT NULL,
     city           TEXT NOT NULL,
@@ -31,15 +31,15 @@ CREATE TABLE offices (
 
 CREATE TABLE service_lines (
     service_line_id SERIAL PRIMARY KEY,
-    id              INTEGER GENERATED ALWAYS AS (service_line_id) STORED, -- compat: sl.id
-    name            TEXT NOT NULL,  -- ajustado en seed a 'Fiscal'|'Laboral'|'Contable'|'Legal'
+    id              INTEGER GENERATED ALWAYS AS (service_line_id) STORED,
+    name            TEXT NOT NULL,
     category        TEXT NOT NULL,
     description     TEXT
 );
 
 CREATE TABLE employees (
     employee_id     SERIAL PRIMARY KEY,
-    id              INTEGER GENERATED ALWAYS AS (employee_id) STORED, -- compat: e.id
+    id              INTEGER GENERATED ALWAYS AS (employee_id) STORED,
     full_name       TEXT NOT NULL,
     email           TEXT UNIQUE NOT NULL,
     phone           TEXT,
@@ -54,10 +54,10 @@ CREATE TABLE employees (
 
 CREATE TABLE clients (
     client_id            SERIAL PRIMARY KEY,
-    id                   INTEGER GENERATED ALWAYS AS (client_id) STORED, -- compat: c.id
+    id                   INTEGER GENERATED ALWAYS AS (client_id) STORED,
     legal_name           TEXT NOT NULL,
     trade_name           TEXT,
-    name                 TEXT GENERATED ALWAYS AS (COALESCE(trade_name, legal_name)) STORED, -- compat: c.name
+    name                 TEXT GENERATED ALWAYS AS (COALESCE(trade_name, legal_name)) STORED,
     tax_id               TEXT UNIQUE NOT NULL,
     category             client_category NOT NULL,
     industry             TEXT,
@@ -85,7 +85,7 @@ CREATE TABLE client_offices (
 
 CREATE TABLE engagements (
     engagement_id        SERIAL PRIMARY KEY,
-    id                   INTEGER GENERATED ALWAYS AS (engagement_id) STORED, -- compat: g.id
+    id                   INTEGER GENERATED ALWAYS AS (engagement_id) STORED,
     client_id            INTEGER NOT NULL REFERENCES clients(client_id) ON DELETE CASCADE,
     service_line_id      INTEGER NOT NULL REFERENCES service_lines(service_line_id) ON DELETE RESTRICT,
     lead_consultant_id   INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
@@ -106,7 +106,7 @@ CREATE TABLE engagement_offices (
 
 CREATE TABLE compliance_cases (
     case_id            SERIAL PRIMARY KEY,
-    id                 INTEGER GENERATED ALWAYS AS (case_id) STORED, -- opcional
+    id                 INTEGER GENERATED ALWAYS AS (case_id) STORED,
     engagement_id      INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
     case_code          TEXT UNIQUE NOT NULL,
     case_type          TEXT NOT NULL,
@@ -184,12 +184,12 @@ CREATE TABLE financial_statements (
 
 CREATE TABLE invoices (
     invoice_id      SERIAL PRIMARY KEY,
-    id              INTEGER GENERATED ALWAYS AS (invoice_id) STORED, -- compat: i.id
+    id              INTEGER GENERATED ALWAYS AS (invoice_id) STORED,
     engagement_id   INTEGER NOT NULL REFERENCES engagements(engagement_id) ON DELETE CASCADE,
     issued_by_id    INTEGER REFERENCES employees(employee_id) ON DELETE SET NULL,
     invoice_number  TEXT UNIQUE NOT NULL,
     issue_date      DATE NOT NULL,
-    issued_at       DATE GENERATED ALWAYS AS (issue_date) STORED, -- compat: i.issued_at
+    issued_at       DATE GENERATED ALWAYS AS (issue_date) STORED,
     due_date        DATE NOT NULL,
     amount_total    NUMERIC(12,2) NOT NULL,
     status          invoice_status NOT NULL,
@@ -198,7 +198,7 @@ CREATE TABLE invoices (
 
 CREATE TABLE invoice_items (
     invoice_item_id SERIAL PRIMARY KEY,
-    id              INTEGER GENERATED ALWAYS AS (invoice_item_id) STORED, -- compat opcional
+    id              INTEGER GENERATED ALWAYS AS (invoice_item_id) STORED,
     invoice_id      INTEGER NOT NULL REFERENCES invoices(invoice_id) ON DELETE CASCADE,
     item_description TEXT NOT NULL,
     quantity        INTEGER NOT NULL DEFAULT 1,
@@ -220,7 +220,6 @@ INSERT INTO offices (name, region, city, address, phone, email, opened_date, hea
     ('Oficina Valencia', 'Levante', 'Valencia', 'Carrer de Colón 34', '+34 96 555 0890', 'valencia@iberconsulting.es', '2015-02-20', 60),
     ('Oficina Sevilla', 'Andalucía', 'Sevilla', 'Avenida de la Palmera 25', '+34 95 555 0670', 'sevilla@iberconsulting.es', '2018-09-03', 50);
 
--- Ajuste de nombres para compatibilidad con sl.name = 'Fiscal'
 INSERT INTO service_lines (name, category, description) VALUES
     ('Fiscal',   'Fiscal',   'Asesoría Fiscal Integral'),
     ('Laboral',  'Laboral',  'Consultoría Laboral y Seguridad Social'),
@@ -332,7 +331,7 @@ INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) V
     (4, 'Reunión extraordinaria consejo médico', 1, 300.00),
     (5, 'Retainer fiscal mensual', 1, 900.00);
 
--- NUEVAS facturas 2025 para que el TOP-5 últimos 12 meses devuelva datos (hoy 2025-10-05)
+-- NUEVAS facturas 2025 para que el TOP-5 últimos 12 meses devuelva datos (hoy 2025-10-10)
 -- Nota: Asumiendo invoice_id autoincremental, estas serán 6..10
 INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
     (1, 1, 'INV-2025-101', '2025-01-15', '2025-02-15', 4700.00, 'paid',   'Retainer enero 2025'),
@@ -348,3 +347,117 @@ INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) V
     (8, 'Ajuste auditoría Málaga',                 1, 450.00),
     (9, 'Reporting trimestral Q3 2025',            1, 2000.00),
     (10,'Retainer fiscal mensual',                 1, 900.00);
+
+--------------------------------------------------------------------------------
+-- COBERTURA ADICIONAL: asegurar datos en TODAS las tablas y cubrir enums
+--------------------------------------------------------------------------------
+
+-- 1) Cliente 'individual' + su oficina
+INSERT INTO clients (legal_name, trade_name, tax_id, category, industry, headquarters_city, headquarters_region,
+                     contact_name, contact_email, contact_phone, onboarding_date, account_manager_id, risk_rating, billing_currency)
+VALUES ('Alejandro Pérez Autónomo', NULL, 'Z1234567X', 'individual', 'Servicios profesionales', 'Palma', 'Islas Baleares',
+        'Alejandro Pérez', 'alejandro.perez@example.com', '+34 600 222 333', '2024-05-01',
+        (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'Low', 'EUR');
+
+INSERT INTO client_offices (client_id, site_name, city, address, employees_count, lead_contact, lead_email)
+VALUES (
+    (SELECT client_id FROM clients WHERE tax_id='Z1234567X'),
+    'Estudio Palma', 'Palma', 'Carrer de Sindicat 12', 3, 'Alejandro Pérez', 'alejandro.perez@example.com'
+);
+
+-- 2) Engagements con estados 'completed' y 'cancelled'
+INSERT INTO engagements (client_id, service_line_id, lead_consultant_id, start_date, end_date, status, retainer_fee, billing_frequency, description, renewal_probability)
+VALUES
+(
+    (SELECT client_id FROM clients WHERE tax_id='Z1234567X'),
+    (SELECT service_line_id FROM service_lines WHERE name='Fiscal'),
+    (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'),
+    '2024-01-01','2024-06-30','completed', 1200.00,'one-off','Regularización fiscal 2023', 0.00
+),
+(
+    (SELECT client_id FROM clients WHERE tax_id='A87654321'), -- GASER
+    (SELECT service_line_id FROM service_lines WHERE name='Legal'),
+    (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'),
+    '2024-04-01','2024-05-15','cancelled', 0.00,'one-off','Proyecto cancelado por alcance', 0.00
+);
+
+-- 3) Caso de cumplimiento con prioridad 'low' + tarea 'blocked'
+INSERT INTO compliance_cases (engagement_id, case_code, case_type, fiscal_year, fiscal_period, due_date, status, priority, assigned_lead_id, notes)
+VALUES (
+    (SELECT MIN(engagement_id) FROM engagements e
+     JOIN clients c ON c.client_id=e.client_id
+     WHERE c.tax_id='Z1234567X' AND e.status='completed'),
+    'AP-IRPF-2024', 'Declaración IRPF', 2024, 'Anual', '2025-06-30', 'scheduled', 'low',
+    (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'),
+    'Caso sencillo para autónomo individual'
+);
+
+INSERT INTO case_tasks (case_id, task_name, assigned_to_id, due_date, status, completed_at, comments)
+VALUES (
+    (SELECT case_id FROM compliance_cases WHERE case_code='AP-IRPF-2024'),
+    'Solicitar certificados de retenciones', (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'),
+    '2025-05-15', 'blocked', NULL, 'Bloqueado a la espera de certificado del banco'
+);
+
+-- 4) Documentos del nuevo caso
+INSERT INTO documents (case_id, uploaded_by, doc_type, file_name, storage_path, uploaded_at, is_signed)
+VALUES (
+    (SELECT case_id FROM compliance_cases WHERE case_code='AP-IRPF-2024'),
+    (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'),
+    'Justificante retenciones', 'retenciones_2024.pdf', '/files/ap_autonomo/irpf/retenciones_2024.pdf', '2025-04-10 10:00', FALSE
+);
+
+-- 5) Tax returns para cubrir IRPF y WITHHOLDING
+INSERT INTO tax_returns (client_id, case_id, fiscal_year, tax_type, period, amount_due, amount_paid, filing_date, status)
+VALUES
+(
+    (SELECT client_id FROM clients WHERE tax_id='Z1234567X'),
+    (SELECT case_id FROM compliance_cases WHERE case_code='AP-IRPF-2024'),
+    2024, 'IRPF', 'Anual', 3200.00, 0.00, NULL, 'draft'
+),
+(
+    (SELECT client_id FROM clients WHERE tax_id='B12345678'), -- TechNova
+    NULL,
+    2024, 'WITHHOLDING', 'Q3', 7800.00, 7800.00, '2024-10-15', 'filed'
+);
+
+-- 6) Estado de cuenta 'monthly'
+INSERT INTO financial_statements (client_id, engagement_id, statement_type, period_start, period_end, revenue, expenses, payroll_costs, tax_provision, prepared_by_id, approved_by_id, approval_date)
+VALUES (
+    (SELECT client_id FROM clients WHERE tax_id='B12345678'),           -- TechNova
+    (SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B12345678')
+            AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+    'monthly','2025-08-01','2025-08-31', 720000.00, 560000.00, 145000.00, 54000.00,
+    (SELECT employee_id FROM employees WHERE email='isabel.torres@iberconsulting.es'),
+    (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'),
+    '2025-09-10'
+);
+
+-- 7) Factura con estado 'void' y líneas con quantity>1
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes)
+VALUES (
+    (SELECT engagement_id FROM engagements WHERE status='cancelled' ORDER BY engagement_id DESC LIMIT 1),
+    (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'),
+    'INV-2025-VOID-001','2025-05-05','2025-06-05', 600.00,'void','Factura anulada por cancelación del proyecto'
+);
+
+INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) VALUES
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-VOID-001'), 'Horas legales (pack)', 3, 200.00);
+
+-- 8) Payroll extra para diversidad temporal (opcional, ya había datos)
+INSERT INTO payroll_reports (client_id, engagement_id, reporting_month, employees_processed, total_gross_pay, social_security_contrib, submitted_by_id, submission_date)
+VALUES (
+    (SELECT client_id FROM clients WHERE tax_id='A87654321'),  -- GASER
+    (SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A87654321') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+    '2024-03-01', 252, 525300.00, 163000.00, (SELECT employee_id FROM employees WHERE email='sergio.vidal@iberconsulting.es'), '2024-03-29'
+);
+
+-- 9) Vincular oficinas al engagement 'completed' (para que engagement_offices tenga cobertura)
+INSERT INTO engagement_offices (engagement_id, office_id)
+SELECT e.engagement_id, 1
+FROM engagements e
+JOIN clients c ON c.client_id=e.client_id
+WHERE c.tax_id='Z1234567X' AND e.status='completed'
+ON CONFLICT DO NOTHING;
+
+-- FIN COBERTURA ADICIONAL
