@@ -746,6 +746,144 @@ class ReportService:
         filename = f"informe-nl2sql-{now}.md"
         return filename, markdown
 
+    def markdown_to_html(self, markdown_text: str, title: str = "Informe NL→SQL") -> str:
+        """Render Markdown to a styled HTML document suitable for PDF conversion."""
+        # Convert Markdown -> HTML fragment
+        try:
+            import markdown as _md
+            html_body = _md.markdown(
+                markdown_text,
+                extensions=[
+                    "extra",  # includes tables, abbr, etc.
+                    "toc",
+                    "sane_lists",
+                    "nl2br",
+                    "fenced_code",
+                ],
+                output_format="xhtml1",
+            )
+        except Exception:
+            # Minimal fallback if markdown package is missing; render as <pre>
+            import html as _html
+            html_body = f"<pre>{_html.escape(markdown_text)}</pre>"
+
+        # Build full HTML with embedded CSS for a clean, executive look
+        css = """
+        :root { --ink:#0f172a; --muted:#475569; --border:#e2e8f0; --bg:#ffffff; --accent:#2563eb; }
+        @page { size: A4; margin: 24mm 18mm 22mm 18mm; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--ink); background: var(--bg); line-height: 1.5; font-size: 12.5pt; }
+        header { border-bottom: 1px solid var(--border); margin-bottom: 18px; padding-bottom: 8px; }
+        h1 { font-size: 22pt; margin: 0; }
+        h2 { font-size: 16pt; margin: 16px 0 6px; }
+        h3 { font-size: 13pt; margin: 14px 0 6px; }
+        h4 { font-size: 12pt; margin: 12px 0 6px; }
+        p { margin: 8px 0; }
+        .muted { color: var(--muted); }
+        .container { max-width: 800px; margin: 0 auto; }
+        code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 10.5pt; }
+        pre { background: #0b1020; color: #e5e7eb; padding: 12px 14px; border-radius: 6px; overflow: auto; border: 1px solid #0b1730; }
+        code { background: #eef2ff; padding: 0 .25rem; border-radius: 4px; border: 1px solid #e0e7ff; }
+        blockquote { margin: 10px 0; padding: 8px 12px; border-left: 3px solid #c7d2fe; background: #f8fafc; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 11.5pt; }
+        th, td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; }
+        th { background: #f8fafc; text-align: left; }
+        tbody tr:nth-child(even) { background: #fbfdff; }
+        .footer { position: running(pageFooter); font-size: 10pt; color: var(--muted); }
+        @page {
+          @bottom-left { content: element(pageFooter); }
+        }
+        .page-number:after { content: counter(page); }
+        .title-badge { color: var(--accent); font-weight: 600; letter-spacing: .02em; }
+        """
+
+        html = f"""
+        <!DOCTYPE html>
+        <html lang=\"es\">
+          <head>
+            <meta charset=\"utf-8\" />
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+            <title>{title}</title>
+            <style>{css}</style>
+          </head>
+          <body>
+            <div class=\"container\">
+              <header>
+                <div class=\"title-badge\">GenIA Platform</div>
+                <h1>{title}</h1>
+              </header>
+              {html_body}
+              <div class=\"footer\">Página <span class=\"page-number\"></span></div>
+            </div>
+          </body>
+        </html>
+        """
+        return html
+
+    def generate_pdf_from_markdown(self, markdown_text: str, pdf_title: str = "Informe NL→SQL") -> bytes:
+        """Convert Markdown to a styled PDF using HTML rendering.
+
+        Prefers WeasyPrint if available; otherwise attempts a basic fallback with PyMuPDF
+        limited HTML support.
+        """
+        html = self.markdown_to_html(markdown_text, title=pdf_title)
+
+        # Try WeasyPrint first for high-quality HTML→PDF rendering
+        try:
+            from weasyprint import HTML as _HTML
+        except Exception:
+            _HTML = None
+
+        if _HTML is not None:
+            try:
+                pdf_bytes = _HTML(string=html, base_url=".").write_pdf()
+                return pdf_bytes
+            except Exception:
+                pass
+
+        # Fallback: render minimal HTML into PDF using PyMuPDF (already a dependency)
+        try:
+            import fitz  # PyMuPDF
+
+            doc = fitz.open()
+            page = doc.new_page(width=595.2, height=841.8)  # A4 @ 72dpi
+            # Render HTML inside a page rectangle; long content will be clipped in this fallback.
+            rect = fitz.Rect(36, 36, 559.2, 805.8)
+            try:
+                page.insert_htmlbox(rect, html)
+            except Exception:
+                # As a last resort, dump raw text
+                page.insert_textbox(rect, markdown_text, fontsize=11, fontname="helv")
+            pdf_bytes = doc.tobytes()
+            doc.close()
+            return pdf_bytes
+        except Exception as exc:
+            raise RuntimeError(f"Failed to render PDF: {exc}")
+
+    def generate_pdf_report(
+        self,
+        *,
+        question: str,
+        sql_query: str,
+        columns: List[str],
+        rows: List[List[Any]],
+        plan: Optional[str] = None,
+        feedback: Optional[str] = None,
+    ) -> tuple[str, bytes]:
+        """Generate a PDF report and its filename."""
+        filename_md, markdown = self.generate_markdown_report(
+            question=question,
+            sql_query=sql_query,
+            columns=columns,
+            rows=rows,
+            plan=plan,
+            feedback=feedback,
+        )
+        # Replace extension
+        pdf_name = filename_md.rsplit(".", 1)[0] + ".pdf"
+        pdf_bytes = self.generate_pdf_from_markdown(markdown, pdf_title="Reporte")
+        return pdf_name, pdf_bytes
+
 
 # ---------------------------------------------------------------------------
 # Service container exposed to the FastAPI app

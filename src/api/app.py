@@ -9,6 +9,7 @@ import re
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.responses import Response
 
 from . import schemas
 from .services import AppServices, build_services
@@ -237,6 +238,32 @@ async def generate_report(
         raise HTTPException(status_code=502, detail=f"Failed to generate report: {exc}")
 
     return schemas.GenerateReportResponse(filename=filename, markdown=markdown)
+
+
+@app.post("/generate_report_pdf")
+async def generate_report_pdf(
+    payload: schemas.GenerateReportRequest,
+    services: AppServices = Depends(get_services),
+) -> Response:
+    """Generate a styled PDF report and return it as a downloadable file."""
+    try:
+        filename, pdf_bytes = services.report_service.generate_pdf_report(
+            question=payload.question,
+            sql_query=payload.sql,
+            columns=payload.columns,
+            rows=payload.rows,
+            plan=payload.plan,
+            feedback=payload.feedback,
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate PDF report")
+        raise HTTPException(status_code=502, detail=f"Failed to generate PDF report: {exc}")
+
+    headers = {
+        "Content-Disposition": f"attachment; filename={filename}",
+        "Content-Type": "application/pdf",
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
 
 @app.post("/upload_md", response_model=schemas.UploadMarkdownResponse)

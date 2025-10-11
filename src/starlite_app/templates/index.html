@@ -884,14 +884,20 @@
           plan: findMessageContentByName(lastMessages, 'planner'),
           feedback: findMessageContentByName(lastMessages, 'feedback'),
         };
-        const response = await fetch(`${API_BASE}/generate_report`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        const response = await fetch(`${API_BASE}/generate_report_pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/pdf' },
+          body: JSON.stringify(payload)
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.detail || 'Failed to generate report');
-        const markdown = String(data.markdown || '');
-        const filename = String(data.filename || 'nl2sql-report.md');
-        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+        if (!response.ok) {
+          let msg = 'Failed to generate report';
+          try { const data = await response.json(); msg = data?.detail || msg; } catch (_) {}
+          throw new Error(msg);
+        }
+        const blob = await response.blob();
+        const disp = response.headers.get('Content-Disposition') || '';
+        const match = disp.match(/filename\s*=\s*"?([^";]+)"?/i);
+        const filename = match ? match[1] : 'informe-nl2sql.pdf';
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       } catch (err) {
