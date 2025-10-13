@@ -11,9 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pgvector_data:/var/lib/postgresql/data
-      # All *.sql/*.sh will run ON FIRST INIT of the data dir
-      - ../databases/vector_db/creation_script:/docker-entrypoint-initdb.d:ro
-      - ../databases/fiscal_consulting_demo/creation_scripts:/docker-entrypoint-initdb.d:ro
+      - ../databases/_initdb:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
