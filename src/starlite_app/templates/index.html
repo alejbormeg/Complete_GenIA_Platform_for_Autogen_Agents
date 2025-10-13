@@ -730,9 +730,12 @@
     }
 
     function extractSql(messages) {
+      // Only accept SQL coming from the agent named 'sql_agent'
       if (!messages?.length) return null;
       for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
         const message = messages[idx];
+        const name = (message?.name || '').toLowerCase();
+        if (name !== 'sql_agent') continue;
         if (message.function_call?.arguments) {
           try {
             const args = JSON.parse(message.function_call.arguments);

@@ -80,11 +80,9 @@ def build_report_chain(model: ChatOpenAI) -> StrOutputParser:
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", REPORT_SYSTEM_PROMPT),
-            ("human", "Original question: {question}"),
-            ("human", "SQL query to reproduce:\n```sql\n{sql_query}\n```"),
-            ("human", "Results table (Markdown):\n{results_markdown}"),
-            ("human", "Planner notes (optional): {plan}"),
-            ("human", "Feedback review (optional): {feedback}"),
+            ("human", "Pregunta original: {question}"),
+            ("human", "Consulta SQL para reproducir:\n```sql\n{sql_query}\n```"),
+            ("human", "Resultados (tabla Markdown):\n{results_markdown}"),
         ]
     )
     return prompt | model | StrOutputParser()

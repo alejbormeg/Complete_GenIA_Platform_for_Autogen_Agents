@@ -720,27 +720,34 @@ class ReportService:
                     "question": question,
                     "sql_query": sql_query,
                     "results_markdown": results_markdown,
-                    "plan": (plan or "").strip(),
-                    "feedback": (feedback or "").strip(),
                 }
             ).strip()
         except Exception as exc:  # pragma: no cover - fallback path
             logger.warning("Report LLM generation failed, using fallback: %s", exc)
-            # Fallback determinista en español
+            # Fallback determinista en español, centrado en utilidad ejecutiva
             summary_rows = len(rows or [])
+            summary_cols = len(columns or [])
             markdown = (
-                "## Informe NL→SQL\n\n"
-                f"### Resumen ejecutivo\n- Filas mostradas: {summary_rows}\n- Columnas: {len(columns or [])}\n\n"
-                f"### Interpretación de resultados\nLos datos se presentan para revisión ejecutiva. Para un análisis más profundo podrían requerirse segmentaciones o periodos adicionales.\n\n"
-                f"### Pregunta\n{question}\n\n"
-                f"### Consulta SQL\n```sql\n{sql_query}\n```\n\n"
-                f"### Resultados\n{results_markdown}\n\n"
+                "## Informe de Consultoría (Fiscal/Laboral)\n\n"
+                "### Resumen ejecutivo\n"
+                f"- Vista previa de datos: {summary_rows} filas, {summary_cols} columnas.\n"
+                "- Revise 'Impacto fiscal' y 'Impacto laboral' para implicaciones clave.\n"
+                "- Considere segmentar por periodo/cliente para detalle adicional.\n\n"
+                "### Impacto fiscal\n"
+                "Lectura preliminar basada en las columnas y cifras disponibles. Para un análisis fiscal más profundo podrían requerirse periodos comparativos, detalle de facturas/impuestos o estados de pago.\n\n"
+                "### Impacto laboral\n"
+                "Lectura preliminar basada en los datos visibles (nómina, headcount, contribuciones sociales si proceden). Puede ser necesario cruzar con reportes de nómina o estacionalidad.\n\n"
+                "### Recomendaciones\n"
+                "- Validar fuentes y límites del conjunto de datos.\n"
+                "- Añadir comparativa temporal y segmentación por cliente/servicio.\n"
+                "- Definir 2–3 KPIs de seguimiento periódico.\n\n"
+                "### Limitaciones y datos adicionales\n"
+                "- Este informe no infiere datos externos ni supuestos no presentes en la tabla.\n"
+                "- Aporte columnas/periodos adicionales para mayor profundidad.\n\n"
+                f"### Anexo\n\n#### Pregunta\n{question}\n\n"
+                f"#### Consulta SQL\n```sql\n{sql_query}\n```\n\n"
+                f"#### Resultados\n{results_markdown}\n\n"
             )
-            if plan:
-                markdown += f"### Plan\n- {plan.replace('\n', '\n- ')}\n\n"
-            if feedback:
-                markdown += f"### Feedback\n- {feedback.replace('\n', '\n- ')}\n\n"
-            markdown += "### Notas\nInforme generado automáticamente por GenIA Platform.\n"
 
         now = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f"informe-nl2sql-{now}.md"
