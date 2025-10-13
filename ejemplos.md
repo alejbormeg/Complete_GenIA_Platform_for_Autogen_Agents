@@ -109,3 +109,18 @@ LIMIT 5;
 ---
 
 Si quieres, te preparo un **CSV de prompts NL y sus SQL** para cargar en tu evaluador de NL2SQL, o los adapto al dialecto exacto de tu motor (Postgres, MySQL, etc.).
+
+
+
+Preguntas finales:
+
+
+¿Cómo evoluciona la facturación mensual (últimos 12 meses) por línea de servicio y cliente?
+
+Top-10 clientes por importe facturado en el trimestre actual y su peso sobre el total (% de concentración).
+
+Ticket medio por cliente (importe medio por factura) y nº de facturas por mes; resaltar variación MoM.
+
+Facturas vencidas vs. pagadas vs. emitidas por mes (conteo e importe), separando overdue/paid/issued.
+
+Tiempo desde el inicio del engagement hasta la primera factura por cliente (mediana por línea de servicio).
