@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>GenIA Platform</title>
+  <title>Plataforma GenIA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f8fafc" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -215,33 +215,33 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-logo" aria-hidden="true"></div>
-        <h1>GenIA Platform</h1>
+        <h1>Plataforma GenIA</h1>
       </div>
       <div class="chiprow" role="list">
-        <div class="chip" role="listitem">LLM Agents</div>
+        <div class="chip" role="listitem">Agentes LLM</div>
         <div class="chip" role="listitem">RAG / pgvector</div>
-        <div class="chip" role="listitem">SQL Copilot</div>
+        <div class="chip" role="listitem">Copiloto SQL</div>
       </div>
     </header>
 
     <section id="screen-menu" class="screen active">
       <div class="card menu-card">
-        <h2>Supercharge your data with Generative AI</h2>
-        <p class="muted">Choose how you want to work with your data today.</p>
+        <h2>Potencia tus datos con IA Generativa</h2>
+        <p class="muted">Elige cómo quieres trabajar con tus datos hoy.</p>
         <div class="menu-actions">
           <article class="option">
             <div>
-              <h3>Vectorize Markdown Content</h3>
-              <p class="muted">Upload a markdown knowledge source, chunk it, and store embeddings directly into Postgres/pgvector.</p>
+              <h3>Vectorizar Contenido Markdown</h3>
+              <p class="muted">Sube una fuente de conocimiento en Markdown, trocéala y guarda los embeddings directamente en Postgres/pgvector.</p>
             </div>
-            <button data-screen="screen-vectorize">Start Vectorizing</button>
+            <button data-screen="screen-vectorize">Iniciar Vectorización</button>
           </article>
           <article class="option">
             <div>
-              <h3>Natural Language to SQL Agents</h3>
-              <p class="muted">Chat with the agentic huddle, inspect intermediate reasoning, and review the executed SQL results.</p>
+              <h3>Agentes de Lenguaje Natural a SQL</h3>
+              <p class="muted">Chatea con el equipo de agentes, inspecciona el razonamiento intermedio y revisa los resultados del SQL ejecutado.</p>
             </div>
-            <button data-screen="screen-sql">Open Agentic Workspace</button>
+            <button data-screen="screen-sql">Abrir Espacio de Trabajo</button>
           </article>
         </div>
       </div>
@@ -249,43 +249,43 @@
 
     <section id="screen-vectorize" class="screen">
       <div class="back-row">
-        <button class="secondary" data-screen="screen-menu">← Main Menu</button>
-        <span class="muted">Vectorize Markdown Document</span>
+        <button class="secondary" data-screen="screen-menu">← Menú Principal</button>
+        <span class="muted">Vectorizar Documento Markdown</span>
       </div>
       <div class="card">
         <div class="screen-header">
-          <h2>Upload &amp; Embed</h2>
-          <span class="muted">Configure chunking and embedding model</span>
+          <h2>Subir y Generar Embeddings</h2>
+          <span class="muted">Configura el troceado y el modelo de embeddings</span>
         </div>
         <form id="vector-form">
           <div class="upload-drop">
-            <strong>Select a markdown file (.md or .markdown)</strong>
+            <strong>Selecciona un archivo Markdown (.md o .markdown)</strong>
             <input id="markdown-file" type="file" accept=".md,.markdown,.txt" />
-            <p id="file-status" class="muted">No file selected yet.</p>
+            <p id="file-status" class="muted">Aún no se ha seleccionado archivo.</p>
           </div>
           <div class="grid-two">
             <label>
-              Chunk Size
+              Tamaño de Fragmento
               <input id="vector-chunk" name="chunk_size" type="number" min="1" value="{{ default_chunk_size }}" />
-              <div class="helper">Determines how content is segmented for embedding.</div>
+              <div class="helper">Determina cómo se segmenta el contenido para generar embeddings.</div>
             </label>
             <label>
-              Embedding Model
+              Modelo de Embeddings
               <select id="vector-model" name="embedding_model">
                 <option value="{{ embedding_model }}" selected>{{ embedding_model }}</option>
                 <option value="text-embedding-3-small">text-embedding-3-small</option>
                 <option value="text-embedding-3-large">text-embedding-3-large</option>
               </select>
-              <div class="helper">OpenAI text-embedding-3 models accept custom dimensions.</div>
+              <div class="helper">Los modelos text-embedding-3 aceptan dimensiones personalizadas.</div>
             </label>
           </div>
           <label>
-            Dataset Label
-            <input id="vector-db" name="database" type="text" placeholder="ex: Marketing wiki" value="{{ pg_database or '' }}" required />
-            <div class="helper">Used to tag the embeddings stored in Postgres. Letters, numbers, spaces are fine.</div>
+            Etiqueta del Conjunto de Datos
+            <input id="vector-db" name="database" type="text" placeholder="ej.: Wiki de marketing" value="{{ pg_database or '' }}" required />
+            <div class="helper">Se usa para etiquetar los embeddings guardados en Postgres. Se permiten letras, números y espacios.</div>
           </label>
           <div class="flex">
-            <button type="submit">Vectorize Document</button>
+            <button type="submit">Vectorizar Documento</button>
             <span id="vector-message" class="muted"></span>
           </div>
         </form>
@@ -295,39 +295,39 @@
 
     <section id="screen-sql" class="screen">
       <div class="back-row">
-        <button class="secondary" data-screen="screen-menu">← Main Menu</button>
-        <span class="muted">Natural Language → SQL Agentic Chat</span>
+        <button class="secondary" data-screen="screen-menu">← Menú Principal</button>
+        <span class="muted">Chat de Agentes: Lenguaje Natural → SQL</span>
       </div>
       <div class="chat-layout">
         <div class="card chat-panel">
           <div>
-            <h2>Ask the Agents</h2>
-            <p class="muted">Describe what you need; the agentic huddle will craft the SQL and reasoning chain.</p>
+            <h2>Pregunta a los Agentes</h2>
+            <p class="muted">Describe lo que necesitas; el equipo de agentes generará el SQL y la cadena de razonamiento.</p>
           </div>
           <form id="chat-form">
             <label>
-              Your Question
-              <textarea id="chat-input" placeholder="ex: What was the total revenue by region last quarter?"></textarea>
+              Tu Pregunta
+              <textarea id="chat-input" placeholder="ej.: ¿Cuál fue el ingreso total por región el último trimestre?"></textarea>
             </label>
             <div class="grid-two">
               <label>
-                Target Database
+                Base de Datos Objetivo
                 <select id="chat-database"></select>
-                <div class="helper">Pick the data source agents should reason over.</div>
+                <div class="helper">Elige la fuente de datos sobre la que deben razonar los agentes.</div>
               </label>
               <div class="action-block">
-                <span>Refresh Sources</span>
-                <button id="refresh-databases" type="button" class="secondary">Reload Databases</button>
-                <div class="helper">Pull the current list of vector-backed databases.</div>
+                <span>Actualizar Fuentes</span>
+                <button id="refresh-databases" type="button" class="secondary">Recargar Bases de Datos</button>
+                <div class="helper">Obtener la lista actual de bases de datos con vectores.</div>
               </div>
             </div>
             <div class="flex">
-              <button type="submit">Send to Agents</button>
+              <button type="submit">Enviar a los Agentes</button>
               <span id="chat-status" class="muted"></span>
             </div>
           </form>
           <section>
-            <h3>Agentic Huddle</h3>
+            <h3>Equipo de Agentes</h3>
             <div id="chat-messages" class="chat-history"></div>
           </section>
         </div>
@@ -335,7 +335,7 @@
         <aside class="side-panel">
           <div class="card">
             <div class="sql-row">
-              <h3>Generated SQL</h3>
+              <h3>SQL Generado</h3>
               <div class="sql-actions">
                 <button id="copy-sql" class="secondary" type="button">Copiar SQL</button>
                 <button id="download-report" class="secondary" type="button" disabled>Descargar Informe</button>
@@ -344,7 +344,7 @@
             <div id="sql-preview" class="sql-preview" hidden></div>
           </div>
           <div class="card">
-            <h3>Query Result</h3>
+            <h3>Resultado de la Consulta</h3>
             <div id="sql-results" class="sql-results" hidden></div>
           </div>
         </aside>
@@ -352,7 +352,7 @@
     </section>
 
     <footer>
-      <p class="mini">Built with ❤️ for Generative AI workflows • <span id="connectivity" aria-live="polite">Checking backend…</span></p>
+      <p class="mini">Hecho con ❤️ para flujos de IA Generativa • <span id="connectivity" aria-live="polite">Comprobando backend…</span></p>
     </footer>
   </main>
 
@@ -370,24 +370,24 @@
     }
     menuButtons.forEach((button) => button.addEventListener('click', () => activateScreen(button.dataset.screen)));
 
-    // Connectivity check (for a friendlier first impression)
+    // Comprobación de conectividad
     const connectivityEl = document.getElementById('connectivity');
     (async () => {
-      if (!API_BASE) { connectivityEl.textContent = 'No backend URL configured'; return; }
+      if (!API_BASE) { connectivityEl.textContent = 'No se configuró URL de backend'; return; }
       try {
         const res = await fetch(`${API_BASE}/healthz`).catch(() => null);
-        if (!res || !res.ok) { connectivityEl.textContent = 'Backend not reachable'; return; }
-        let message = 'Backend connected';
+        if (!res || !res.ok) { connectivityEl.textContent = 'El backend no es accesible'; return; }
+        let message = 'Backend conectado';
         try {
           const info = await res.json();
           if (info?.status && info.status !== 'ok') { message = `Backend ${info.status}`; }
           if (info?.database_status && info.database_status !== 'ok') {
-            message = `${message} (database ${info.database_status})`;
+            message = `${message} (base de datos ${info.database_status})`;
           }
         } catch (_) { /* ignore parse errors */ }
         connectivityEl.textContent = message;
       } catch {
-        connectivityEl.textContent = 'Backend not reachable';
+        connectivityEl.textContent = 'El backend no es accesible';
       }
     })();
 
@@ -404,21 +404,21 @@
       const file = event.target.files?.[0];
       fileTextCache = '';
       selectedFile = file || null;
-      if (!file) { fileStatus.textContent = 'No file selected yet.'; return; }
+      if (!file) { fileStatus.textContent = 'Aún no se ha seleccionado archivo.'; return; }
       const name = file.name.toLowerCase();
       if (!name.endsWith('.md') && !name.endsWith('.markdown') && !name.endsWith('.txt')) {
         selectedFile = null;
-        fileStatus.textContent = 'Please choose a markdown (.md) file.';
+        fileStatus.textContent = 'Elige un archivo Markdown (.md).';
         return;
       }
-      fileStatus.textContent = `Loading ${file.name}…`;
+      fileStatus.textContent = `Cargando ${file.name}…`;
       const reader = new FileReader();
       reader.onload = () => {
         fileTextCache = reader.result?.toString() ?? '';
         const wordCount = fileTextCache.split(/\s+/).filter(Boolean).length;
-        fileStatus.textContent = `Loaded ${file.name} • ${wordCount} words`;
+        fileStatus.textContent = `Cargado ${file.name} • ${wordCount} palabras`;
       };
-      reader.onerror = () => { fileStatus.textContent = 'Failed to read file. Please try again.'; };
+      reader.onerror = () => { fileStatus.textContent = 'Error al leer el archivo. Inténtalo de nuevo.'; };
       reader.readAsText(file);
     });
 
@@ -432,12 +432,12 @@
       const model = document.getElementById('vector-model').value || DEFAULT_EMBEDDING_MODEL;
       const databaseLabel = document.getElementById('vector-db').value.trim();
       if (!selectedFile) {
-        vectorMessage.textContent = 'Please choose a markdown document before uploading.';
+        vectorMessage.textContent = 'Elige un documento Markdown antes de subirlo.';
         vectorMessage.classList.add('error');
         return;
       }
       if (!databaseLabel) {
-        vectorMessage.textContent = 'Please provide a dataset label to store the embeddings.';
+        vectorMessage.textContent = 'Proporciona una etiqueta del conjunto de datos para guardar los embeddings.';
         vectorMessage.classList.add('error');
         return;
       }
@@ -449,7 +449,7 @@
       formData.append('database', databaseLabel);
 
       vectorForm.classList.add('loading');
-      vectorMessage.textContent = 'Uploading document for vectorization…';
+      vectorMessage.textContent = 'Subiendo documento para vectorización…';
 
       try {
         const response = await fetch(`${API_BASE}/upload_md`, {
@@ -458,29 +458,28 @@
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
-          const detail = (data && (data.detail || data.message)) || 'Failed to vectorize document';
-          throw new Error(detail);
+          throw new Error('Error al vectorizar el documento');
         }
 
         const details = [
-          `Table: ${data?.table || 'vector_embeddings_1536'}`,
-          `Database tag: ${data?.database || databaseLabel}`,
-          `Chunk size: ${data?.chunk_size ?? chunkSize}`,
-          data?.detail || 'Markdown document uploaded successfully.',
+          `Tabla: ${data?.table || 'vector_embeddings_1536'}`,
+          `Etiqueta del conjunto de datos: ${data?.database || databaseLabel}`,
+          `Tamaño de fragmento: ${data?.chunk_size ?? chunkSize}`,
+          'Documento Markdown subido correctamente.',
         ].join('\n');
 
         vectorOutput.textContent = details;
         vectorOutput.hidden = false;
-        vectorMessage.textContent = 'Embedding complete.';
+        vectorMessage.textContent = 'Embeddings completados.';
         vectorMessage.classList.remove('error');
         vectorForm.reset();
         selectedFile = null;
         fileTextCache = '';
-        fileStatus.textContent = 'No file selected yet.';
+        fileStatus.textContent = 'Aún no se ha seleccionado archivo.';
       } catch (error) {
         console.error(error);
         vectorMessage.classList.add('error');
-        vectorMessage.textContent = error instanceof Error ? error.message : 'Unexpected error while vectorizing.';
+        vectorMessage.textContent = error instanceof Error ? error.message : 'Error inesperado al vectorizar.';
       } finally {
         vectorForm.classList.remove('loading');
       }
@@ -501,22 +500,22 @@
     copySqlBtn.addEventListener('click', () => {
       if (sqlPreview.hidden) return;
       navigator.clipboard.writeText(sqlPreview.textContent || '').then(() => {
-        copySqlBtn.textContent = 'Copied!';
-        setTimeout(() => (copySqlBtn.textContent = 'Copy'), 1200);
+        copySqlBtn.textContent = '¡Copiado!';
+        setTimeout(() => (copySqlBtn.textContent = 'Copiar'), 1200);
       });
     });
 
     async function loadDatabases() {
-      chatStatus.textContent = 'Refreshing databases…';
+      chatStatus.textContent = 'Actualizando bases de datos…';
       try {
         const response = await fetch(`${API_BASE}/vector_databases?chunk_size=${DEFAULT_CHUNK_SIZE}`);
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.detail || 'Failed to fetch databases');
+        if (!response.ok) throw new Error('Error al obtener las bases de datos');
 
         chatDatabase.innerHTML = '';
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
-        defaultOption.textContent = 'Auto-select based on agent context';
+        defaultOption.textContent = 'Selección automática según el contexto del agente';
         chatDatabase.appendChild(defaultOption);
 
         const tables = data.tables || data.databases || [];
@@ -525,10 +524,10 @@
           option.value = tableName; option.textContent = tableName; if (tableName === PG_DATABASE) option.selected = true;
           chatDatabase.appendChild(option);
         }
-        chatStatus.textContent = tables.length ? `Loaded ${tables.length} tables.` : 'No tables found yet.';
+        chatStatus.textContent = tables.length ? `Se cargaron ${tables.length} tablas.` : 'Aún no hay tablas.';
       } catch (error) {
         console.error(error);
-        chatStatus.textContent = error instanceof Error ? error.message : 'Error while loading databases.';
+        chatStatus.textContent = error instanceof Error ? error.message : 'Error al cargar las bases de datos.';
       }
     }
 
@@ -542,11 +541,11 @@
     }
 
     function friendlyLabel(role, name) {
-      const map = { planner: 'Planner', retriever: 'Retriever', sql_agent: 'SQL Agent', feedback: 'Feedback', user: 'User', assistant: 'Assistant' };
+      const map = { planner: 'Planificador', retriever: 'Recuperador', sql_agent: 'Agente SQL', feedback: 'Comentarios', user: 'Usuario', assistant: 'Asistente' };
       if (name && map[name.toLowerCase()]) return map[name.toLowerCase()];
       if (name) return toTitleCase(name);
       if (role && map[role.toLowerCase()]) return map[role.toLowerCase()];
-      return toTitleCase(role || 'Message');
+      return toTitleCase(role || 'Mensaje');
     }
 
     // --- Minimal, safe Markdown renderer (subset) ---
@@ -694,7 +693,7 @@
     function renderMessages(messages) {
       chatMessages.innerHTML = '';
       if (!messages?.length) {
-        chatMessages.innerHTML = '<p class="muted">No messages yet. Submit a query to start the conversation.</p>';
+        chatMessages.innerHTML = '<p class="muted">Aún no hay mensajes. Envía una consulta para iniciar la conversación.</p>';
         return;
       }
       for (const message of messages) {
@@ -721,7 +720,7 @@
         } else if (message.function_call) {
           fragment.textContent = JSON.stringify(message.function_call, null, 2);
         } else {
-          fragment.textContent = '[no content]';
+          fragment.textContent = '[sin contenido]';
         }
         wrapper.appendChild(fragment);
         chatMessages.appendChild(wrapper);
@@ -791,13 +790,13 @@
 
     function renderSqlTable({ rows, columns }) {
       sqlResults.innerHTML = '';
-      if (!rows?.length) { sqlResults.textContent = 'Query executed. No rows returned.'; sqlResults.hidden = false; return; }
+      if (!rows?.length) { sqlResults.textContent = 'Consulta ejecutada. No se devolvieron filas.'; sqlResults.hidden = false; return; }
       const maxColumns = rows.reduce((m, r) => Math.max(m, r.length), 0);
       const table = document.createElement('table'); table.className = 'sql-table';
       const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
       // Prefer server-provided column names; fallback to generic labels
-      const safeColumns = Array.isArray(columns) && columns.length ? columns : Array.from({ length: maxColumns }, (_, i) => `col_${i + 1}`);
-      for (let col = 0; col < maxColumns; col += 1) { const th = document.createElement('th'); th.textContent = safeColumns[col] ?? `col_${col + 1}`; headerRow.appendChild(th); }
+      const safeColumns = Array.isArray(columns) && columns.length ? columns : Array.from({ length: maxColumns }, (_, i) => `columna_${i + 1}`);
+      for (let col = 0; col < maxColumns; col += 1) { const th = document.createElement('th'); th.textContent = safeColumns[col] ?? `columna_${col + 1}`; headerRow.appendChild(th); }
       thead.appendChild(headerRow); table.appendChild(thead);
       const tbody = document.createElement('tbody');
       for (const row of rows) { const tr = document.createElement('tr'); for (let col = 0; col < maxColumns; col += 1) { const td = document.createElement('td'); const value = row[col]; td.textContent = value == null ? '∅' : String(value); tr.appendChild(td);} tbody.appendChild(tr);} table.appendChild(tbody);
@@ -810,7 +809,7 @@
       if (table) { payload.table = table; }
       const response = await fetch(`${API_BASE}/execute_query`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.detail || 'Failed to execute SQL query');
+      if (!response.ok) throw new Error(data?.detail || 'Error al ejecutar la consulta SQL');
       return { rows: data.rows || [], columns: data.columns || [] };
     }
 
@@ -825,7 +824,7 @@
       sqlPreview.hidden = true; sqlResults.hidden = true;
 
       const prompt = chatInput.value.trim();
-      if (!prompt) { chatStatus.textContent = 'Please provide a question for the agents.'; return; }
+      if (!prompt) { chatStatus.textContent = 'Escribe una pregunta para los agentes.'; return; }
       lastPrompt = prompt;
 
       const selectedTable = chatDatabase.value.trim();
@@ -833,26 +832,26 @@
       if (selectedTable) { chatPayload.table = selectedTable; }
 
       chatForm.classList.add('loading');
-      chatStatus.textContent = 'Agents are thinking…';
+      chatStatus.textContent = 'Los agentes están pensando…';
 
       try {
         const response = await fetch(`${API_BASE}/agents_chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatPayload) });
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.detail || 'Agentic chat failed');
+        if (!response.ok) throw new Error('Falló el chat de agentes');
 
         lastMessages = Array.isArray(data.messages) ? data.messages : [];
         renderMessages(lastMessages);
-        chatStatus.textContent = 'Conversation updated.';
+        chatStatus.textContent = 'Conversación actualizada.';
 
         const sql = extractSql(lastMessages);
-        if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'No SQL detected in agent response yet.'; sqlResults.hidden = true; return; }
+        if (!sql) { sqlPreview.hidden = false; sqlPreview.textContent = 'Aún no se detectó SQL en la respuesta del agente.'; sqlResults.hidden = true; return; }
 
         sqlPreview.hidden = false; sqlPreview.textContent = sql; lastSql = sql;
         const tableForQuery = inferTableFromSql(sql) || null;
         try { const result = await executeQuery(sql, tableForQuery); lastResult = result; renderSqlTable(result); document.getElementById('download-report').disabled = false; }
-        catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Failed to execute generated SQL.'; }
+        catch (queryError) { console.error(queryError); sqlResults.hidden = false; sqlResults.textContent = queryError instanceof Error ? queryError.message : 'Error al ejecutar el SQL generado.'; }
       } catch (error) {
-        console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Unexpected error during agent chat.';
+        console.error(error); chatStatus.textContent = error instanceof Error ? error.message : 'Error inesperado durante el chat de agentes.';
       } finally { chatForm.classList.remove('loading'); }
     });
 
@@ -892,11 +891,7 @@
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/pdf' },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) {
-          let msg = 'Failed to generate report';
-          try { const data = await response.json(); msg = data?.detail || msg; } catch (_) {}
-          throw new Error(msg);
-        }
+        if (!response.ok) { throw new Error('Error al generar el informe'); }
         const blob = await response.blob();
         const disp = response.headers.get('Content-Disposition') || '';
         const match = disp.match(/filename\s*=\s*"?([^";]+)"?/i);
@@ -905,7 +900,7 @@
         const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       } catch (err) {
         console.error(err);
-        alert(err instanceof Error ? err.message : 'Failed to generate report');
+        alert(err instanceof Error ? err.message : 'Error al generar el informe');
       } finally {
         button.textContent = 'Descargar Informe'; button.disabled = false;
       }

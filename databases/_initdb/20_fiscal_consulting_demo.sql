@@ -461,3 +461,279 @@ WHERE c.tax_id='Z1234567X' AND e.status='completed'
 ON CONFLICT DO NOTHING;
 
 -- FIN COBERTURA ADICIONAL
+
+--------------------------------------------------------------------------------
+-- DATOS COMPLEMENTARIOS PARA ANÁLISIS (más clientes, 12 meses, estados variados)
+-- Objetivo: cubrir consultas NL->SQL de facturación mensual, TOP-10 trimestre,
+-- ticket medio, estados por mes (overdue/paid/issued) y tiempo a 1ª factura.
+--------------------------------------------------------------------------------
+
+-- Nuevos clientes para alcanzar >10 con actividad en el trimestre actual (Q4-2025)
+INSERT INTO clients (legal_name, trade_name, tax_id, category, industry, headquarters_city, headquarters_region,
+                     contact_name, contact_email, contact_phone, onboarding_date, account_manager_id, risk_rating, billing_currency) VALUES
+    ('Logística Atlántica S.L.', 'LogAtlántica', 'B11223344', 'sme', 'Logística y Transporte', 'A Coruña', 'Galicia',
+     'Andrea Vila', 'andrea.vila@logatlantica.es', '+34 981 123 456', '2024-09-15',
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'Medium', 'EUR'),
+    ('BioFarma Iberia S.A.', 'BioFarma', 'A11221122', 'corporate', 'Farmacéutica', 'Madrid', 'Comunidad de Madrid',
+     'Jorge Molina', 'jmolina@biofarma.es', '+34 91 111 2222', '2025-01-05',
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'High', 'EUR'),
+    ('Retail Ciudad S.L.', 'RetailCiudad', 'B55667788', 'sme', 'Retail', 'Zaragoza', 'Aragón',
+     'Elena Ruiz', 'eruiz@retailciudad.es', '+34 976 222 333', '2024-07-10',
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'Medium', 'EUR'),
+    ('EnerGreen Renovables S.L.', 'EnerGreen', 'B66778899', 'sme', 'Energías Renovables', 'Pamplona', 'Navarra',
+     'Pablo Larrarte', 'pablo.larrarte@energreen.es', '+34 948 333 444', '2025-03-01',
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'Low', 'EUR'),
+    ('AIStart Iberia S.L.', 'AIStart', 'B77889900', 'sme', 'Tecnología', 'Madrid', 'Comunidad de Madrid',
+     'Sofía Álvarez', 'sofia@aistart.es', '+34 91 444 5555', '2025-02-15',
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'High', 'EUR'),
+    ('Hoteles Sol y Mar S.L.', 'Sol y Mar', 'B99001122', 'sme', 'Hospitalidad', 'Alicante', 'Comunidad Valenciana',
+     'Víctor Prats', 'vprats@solymar.es', '+34 965 555 666', '2024-11-01',
+     (SELECT employee_id FROM employees WHERE email='isabel.torres@iberconsulting.es'), 'Medium', 'EUR'),
+    ('Construcciones Norte S.A.', 'ConsNorte', 'A33445566', 'corporate', 'Construcción', 'Oviedo', 'Asturias',
+     'Noelia Treviño', 'noelia@consnorte.es', '+34 984 777 888', '2025-05-01',
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'Medium', 'EUR');
+
+-- Oficinas de los nuevos clientes
+INSERT INTO client_offices (client_id, site_name, city, address, employees_count, lead_contact, lead_email) VALUES
+    ((SELECT client_id FROM clients WHERE tax_id='B11223344'), 'Sede A Coruña', 'A Coruña', 'Rúa Real 10', 85, 'Andrea Vila', 'andrea.vila@logatlantica.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='A11221122'), 'Sede Madrid',  'Madrid',   'Calle Velázquez 128', 650, 'Jorge Molina', 'jmolina@biofarma.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='B55667788'), 'Sede Zaragoza','Zaragoza', 'Av. César Augusto 22', 110, 'Elena Ruiz', 'eruiz@retailciudad.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='B66778899'), 'Sede Pamplona','Pamplona', 'C. Estafeta 5', 60, 'Pablo Larrarte', 'pablo.larrarte@energreen.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='B77889900'), 'Sede Madrid',  'Madrid',   'C. Hermosilla 9', 24, 'Sofía Álvarez', 'sofia@aistart.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='B99001122'), 'Hotel Central','Alicante', 'Av. de la Estación 7', 180, 'Víctor Prats', 'vprats@solymar.es'),
+    ((SELECT client_id FROM clients WHERE tax_id='A33445566'), 'Sede Oviedo',  'Oviedo',   'C. Uría 18', 240, 'Noelia Treviño', 'noelia@consnorte.es');
+
+-- Engagements de nuevos clientes (variedad de líneas y frecuencias)
+INSERT INTO engagements (client_id, service_line_id, lead_consultant_id, start_date, end_date, status, retainer_fee, billing_frequency, description, renewal_probability) VALUES
+    ((SELECT client_id FROM clients WHERE tax_id='B11223344'), (SELECT service_line_id FROM service_lines WHERE name='Contable'),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), '2024-10-01', NULL, 'active', 1500.00, 'monthly', 'Contabilidad general y conciliaciones', 80.00),
+    ((SELECT client_id FROM clients WHERE tax_id='A11221122'), (SELECT service_line_id FROM service_lines WHERE name='Fiscal'),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), '2025-02-01', NULL, 'active', 5200.00, 'monthly', 'Asesoría fiscal para multinacional', 90.00),
+    ((SELECT client_id FROM clients WHERE tax_id='B55667788'), (SELECT service_line_id FROM service_lines WHERE name='Laboral'),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), '2024-08-15', NULL, 'active', 2100.00, 'monthly', 'Gestión de nóminas y altas', 88.00),
+    ((SELECT client_id FROM clients WHERE tax_id='B66778899'), (SELECT service_line_id FROM service_lines WHERE name='Legal'),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), '2025-01-15', NULL, 'active', 4000.00, 'quarterly', 'Cumplimiento normativo y contratos', 70.00),
+    ((SELECT client_id FROM clients WHERE tax_id='B77889900'), (SELECT service_line_id FROM service_lines WHERE name='Fiscal'),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), '2025-02-20', NULL, 'active', 1100.00, 'monthly', 'Startup fiscal y modelos 303/111', 85.00),
+    ((SELECT client_id FROM clients WHERE tax_id='B99001122'), (SELECT service_line_id FROM service_lines WHERE name='Laboral'),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), '2024-11-05', NULL, 'active', 3500.00, 'monthly', 'Gestión de nóminas hotel', 80.00),
+    ((SELECT client_id FROM clients WHERE tax_id='A33445566'), (SELECT service_line_id FROM service_lines WHERE name='Contable'),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), '2025-05-01', NULL, 'active', 2400.00, 'monthly', 'Contabilidad de proyectos de obra', 75.00);
+
+-- Asociar engagements a oficina Madrid (1) para cobertura
+INSERT INTO engagement_offices (engagement_id, office_id)
+SELECT e.engagement_id, 1
+FROM engagements e
+JOIN clients c ON c.client_id=e.client_id
+WHERE c.tax_id IN ('B11223344','A11221122','B55667788','B66778899','B77889900','B99001122','A33445566')
+ON CONFLICT DO NOTHING;
+
+-- Facturación últimos 12 meses (nov-2024 .. oct-2025) con mezcla de estados
+-- NOVIEMBRE 2024
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2024-110', '2024-11-05', '2024-12-05', 1500.00, 'paid',   'Retainer contable noviembre 2024'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2024-111', '2024-11-28', '2024-12-28', 2100.00, 'paid',   'Nóminas noviembre 2024'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2024-112', '2024-11-10', '2024-12-10', 3500.00, 'paid',   'Nóminas hotel noviembre 2024');
+
+-- DICIEMBRE 2024
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2024-120', '2024-12-05', '2025-01-05', 1500.00, 'paid',   'Retainer contable diciembre 2024'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2024-121', '2024-12-27', '2025-01-27', 2100.00, 'paid',   'Nóminas diciembre 2024'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2024-122', '2024-12-10', '2025-01-10', 3500.00, 'overdue','Nóminas hotel diciembre 2024');
+
+-- ENERO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-501', '2025-01-05', '2025-02-05', 1500.00, 'paid',   'Retainer contable enero 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-502', '2025-01-27', '2025-02-27', 2100.00, 'paid',   'Nóminas enero 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2025-503', '2025-01-10', '2025-02-10', 3500.00, 'paid',   'Nóminas hotel enero 2025');
+
+-- FEBRERO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-520', '2025-02-05', '2025-03-05', 5200.00, 'paid',   'Retainer fiscal febrero 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-521', '2025-02-25', '2025-03-25', 1100.00, 'issued', 'Retainer fiscal febrero 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-522', '2025-02-05', '2025-03-05', 1500.00, 'paid',   'Retainer contable febrero 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-523', '2025-02-26', '2025-03-26', 2100.00, 'paid',   'Nóminas febrero 2025');
+
+-- MARZO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-530', '2025-03-05', '2025-04-05', 5200.00, 'paid',   'Retainer fiscal marzo 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-531', '2025-03-25', '2025-04-25', 1100.00, 'paid',   'Retainer fiscal marzo 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2025-532', '2025-03-10', '2025-04-10', 3500.00, 'issued', 'Nóminas hotel marzo 2025');
+
+-- ABRIL 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B66778899') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Legal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-540', '2025-04-05', '2025-05-05', 4000.00, 'paid',   'Honorarios legales Q2 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-541', '2025-04-05', '2025-05-05', 5200.00, 'paid',   'Retainer fiscal abril 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-542', '2025-04-26', '2025-05-26', 2100.00, 'paid',   'Nóminas abril 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-543', '2025-04-25', '2025-05-25', 1100.00, 'paid',   'Retainer fiscal abril 2025');
+
+-- MAYO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-550', '2025-05-05', '2025-06-05', 5200.00, 'paid',   'Retainer fiscal mayo 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-551', '2025-05-05', '2025-06-05', 1500.00, 'paid',   'Retainer contable mayo 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2025-552', '2025-05-10', '2025-06-10', 3500.00, 'paid',   'Nóminas hotel mayo 2025');
+
+-- JUNIO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-560', '2025-06-05', '2025-07-05', 5200.00, 'paid',   'Retainer fiscal junio 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-561', '2025-06-26', '2025-07-26', 2100.00, 'overdue','Nóminas junio 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-563', '2025-06-05', '2025-07-05', 1500.00, 'paid',   'Retainer contable junio 2025');
+
+-- JULIO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B66778899') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Legal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-570', '2025-07-05', '2025-08-05', 4000.00, 'paid',   'Honorarios legales Q3 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-571', '2025-07-05', '2025-08-05', 5200.00, 'paid',   'Retainer fiscal julio 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-572', '2025-07-25', '2025-08-25', 1100.00, 'paid',   'Retainer fiscal julio 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A33445566') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-573', '2025-07-01', '2025-08-01', 2400.00, 'paid',   'Contabilidad mensual julio 2025');
+
+-- AGOSTO 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2025-580', '2025-08-10', '2025-09-10', 3500.00, 'paid',   'Nóminas hotel agosto 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-581', '2025-08-05', '2025-09-05', 1500.00, 'overdue','Retainer contable agosto 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-582', '2025-08-26', '2025-09-26', 2100.00, 'paid',   'Nóminas agosto 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-583', '2025-08-05', '2025-09-05', 5200.00, 'paid',   'Retainer fiscal agosto 2025');
+
+-- SEPTIEMBRE 2025
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-590', '2025-09-05', '2025-10-05', 5200.00, 'paid',   'Retainer fiscal septiembre 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-591', '2025-09-25', '2025-10-25', 1100.00, 'issued', 'Retainer fiscal septiembre 2025'),
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-592', '2025-09-05', '2025-10-05', 1500.00, 'paid',   'Retainer contable septiembre 2025');
+
+-- OCTUBRE 2025 (trimestre actual Q4-2025, asegurar >=10 clientes con facturación)
+INSERT INTO invoices (engagement_id, issued_by_id, invoice_number, issue_date, due_date, amount_total, status, notes) VALUES
+    -- TechNova (Fiscal)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B12345678') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-610', '2025-10-05', '2025-11-05', 4700.00, 'issued', 'Retainer fiscal octubre 2025'),
+    -- TechNova (Laboral)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B12345678') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-611', '2025-10-01', '2025-10-31', 2600.00, 'paid',   'Nóminas octubre 2025'),
+    -- Climed (Contable)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99887766') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-612', '2025-10-15', '2025-11-15', 1800.00, 'paid',   'Reporting contable octubre 2025'),
+    -- Brío (Fiscal)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='F44556677') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='carmen.ruiz@iberconsulting.es'), 'INV-2025-613', '2025-10-20', '2025-11-20', 900.00,  'issued', 'Retainer fiscal octubre 2025'),
+    -- BioFarma (Fiscal)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A11221122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-614', '2025-10-05', '2025-11-05', 5200.00, 'issued', 'Retainer fiscal octubre 2025'),
+    -- EnerGreen (Legal)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B66778899') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Legal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='laura.martin@iberconsulting.es'), 'INV-2025-615', '2025-10-05', '2025-11-05', 4000.00, 'issued', 'Honorarios legales Q4 2025'),
+    -- Logística Atlántica (Contable)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B11223344') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-616', '2025-10-05', '2025-11-05', 1500.00, 'issued', 'Retainer contable octubre 2025'),
+    -- Retail Ciudad (Laboral)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B55667788') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='javier.lopez@iberconsulting.es'), 'INV-2025-617', '2025-10-26', '2025-11-26', 2100.00, 'issued', 'Nóminas octubre 2025'),
+    -- AIStart Iberia (Fiscal)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B77889900') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Fiscal') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='marta.gomez@iberconsulting.es'), 'INV-2025-618', '2025-10-25', '2025-11-25', 1100.00, 'issued', 'Retainer fiscal octubre 2025'),
+    -- Hoteles Sol y Mar (Laboral)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='B99001122') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Laboral') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='anna.puig@iberconsulting.es'), 'INV-2025-619', '2025-10-10', '2025-11-10', 3500.00, 'paid',   'Nóminas hotel octubre 2025'),
+    -- Construcciones Norte (Contable)
+    ((SELECT engagement_id FROM engagements WHERE client_id=(SELECT client_id FROM clients WHERE tax_id='A33445566') AND service_line_id=(SELECT service_line_id FROM service_lines WHERE name='Contable') LIMIT 1),
+     (SELECT employee_id FROM employees WHERE email='diego.herrera@iberconsulting.es'), 'INV-2025-620', '2025-10-01', '2025-11-01', 2400.00, 'issued', 'Contabilidad mensual octubre 2025');
+
+-- Líneas de detalle para las nuevas facturas (1 línea por factura con el total)
+-- Usamos subconsultas por invoice_number para evitar suposiciones de IDs
+INSERT INTO invoice_items (invoice_id, item_description, quantity, unit_price) VALUES
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-110'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-111'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-112'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-120'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-121'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2024-122'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-501'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-502'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-503'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-520'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-521'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-522'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-523'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-530'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-531'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-532'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-540'), 'Honorarios legales trimestrales', 1, 4000.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-541'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-542'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-543'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-550'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-551'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-552'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-560'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-561'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-563'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-570'), 'Honorarios legales trimestrales', 1, 4000.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-571'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-572'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-573'), 'Honorarios contables', 1, 2400.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-580'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-581'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-582'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-583'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-590'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-591'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-592'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-610'), 'Retainer fiscal', 1, 4700.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-611'), 'Nóminas mes', 1, 2600.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-612'), 'Honorarios contables', 1, 1800.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-613'), 'Retainer fiscal', 1, 900.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-614'), 'Retainer fiscal', 1, 5200.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-615'), 'Honorarios legales trimestrales', 1, 4000.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-616'), 'Honorarios contables', 1, 1500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-617'), 'Nóminas mes', 1, 2100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-618'), 'Retainer fiscal', 1, 1100.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-619'), 'Nóminas mes', 1, 3500.00),
+    ((SELECT invoice_id FROM invoices WHERE invoice_number='INV-2025-620'), 'Honorarios contables', 1, 2400.00);
+
+-- Notas:
+-- - Primeras facturas tras inicio del engagement pensadas para variar el "lead time":
+--   B11223344: start 2024-10-01 -> 1ª factura 2024-11-05 (~35 días)
+--   A11221122: start 2025-02-01 -> 1ª factura 2025-02-05 (4 días)
+--   B55667788: start 2024-08-15 -> 1ª factura 2024-11-28 (~105 días)
+--   B66778899: start 2025-01-15 -> 1ª factura 2025-04-05 (~80 días)
+--   B77889900: start 2025-02-20 -> 1ª factura 2025-02-25 (5 días)
+--   B99001122: start 2024-11-05 -> 1ª factura 2024-11-10 (5 días)
+--   A33445566: start 2025-05-01 -> 1ª factura 2025-07-01 (~61 días)
+
+-- Con esto hay actividad suficiente por línea y cliente en los últimos 12 meses,
+-- mezcla de estados (paid/issued/overdue) y al menos 10 clientes con facturas
+-- en octubre de 2025 para análisis de TOP-10 trimestral y concentración.
